@@ -1,0 +1,332 @@
+\documentclass[a4paper,twoside,12pt]{report}
+% Richard Klein (2020)
+
+% Include Packages
+% \usepackage[a4paper,inner=3.5cm,outer=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}  % Set page margins
+\usepackage{csquotes}
+\usepackage{fullpage}
+\usepackage{float}                  % Allows 'Here and Only Here' [H] for Floats
+\usepackage{url}                    % \url{} command
+\usepackage{charter}                  % Set font to Times
+\usepackage{graphicx}               % \includegraphics
+% \usepackage{subfigure}              % Allow subfigures
+\usepackage{changepage}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{ltablex}
+\usepackage{pdfpages}
+
+% \usepackage{caption}
+\usepackage{subcaption}
+% \usepackage[top=30mm,bottom=40mm,inner=30mm,outer=20mm]{geometry}
+% \usepackage{subfig}
+\usepackage{titlesec}
+\usepackage{algorithm}
+% \usepackage{algorithmic}
+\usepackage{algpseudocode}
+\usepackage{setspace}
+\usepackage{adjustbox}
+\usepackage[pdftex,dvipsnames]{xcolor}
+\usepackage{xargs}
+\usepackage{svg}
+\usepackage{tabularray}
+\usepackage{siunitx}
+% \usepackage[colorinlistoftodos,textwidth=20mm]{todonotes}
+% Referencing
+% Provides \Vref and \vref to indicate where a reference is.
+\usepackage{varioref} 
+% Hyperlinks references
+\usepackage{tabularx}
+\usepackage[bookmarks=true,bookmarksopen=true]{hyperref} 
+% Provides \Cref, \cref, \Vref, \vref to include the type of reference: fig/eqn/tbl
+\usepackage{cleveref} 
+\usepackage[T1]{fontenc}
+% \usepackage{tabularx}
+
+% \setquotestyle[]{}
+\MakeOuterQuote{"}
+% Setup Hyperref
+\hypersetup{
+  colorlinks   = true,              %Colours links instead of ugly boxes
+  urlcolor     = blue,              %Colour for external hyperlinks
+  linkcolor    = blue,              %Colour of internal links
+  citecolor    = blue                %Colour of citations
+}
+% Names for Clever Ref
+\crefname{table}{table}{tables}
+\Crefname{table}{Table}{Tables}
+\crefname{figure}{figure}{figures}
+\Crefname{figure}{Figure}{Figures}
+\crefname{equation}{equation}{equations}
+\Crefname{equation}{Equation}{Equations}
+% \normalmarginpar
+% \reversemarginpar
+
+\setlength{\marginparwidth}{2cm}
+% \normalmarginpar
+% \reversemarginpar
+% \reverse
+\usepackage[colorinlistoftodos,textsize=footnotesize]{todonotes}
+\newcommandx{\unsure}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{#2}}
+\newcommandx{\change}[2][1=]{\todo[linecolor=blue,backgroundcolor=blue!25,bordercolor=blue,#1]{#2}}
+\newcommandx{\info}[2][1=]{\todo[linecolor=OliveGreen,backgroundcolor=OliveGreen!25,bordercolor=OliveGreen,#1]{#2}}
+\newcommandx{\improvement}[2][1=]{\todo[linecolor=Plum,backgroundcolor=Plum!25,bordercolor=Plum,#1]{#2}}
+\newcommandx{\thiswillnotshow}[2][1=]{\todo[disable,#1]{#2}}
+% \normalmarginpar
+
+% Wits Citation Style
+\usepackage{natbib} \input{natbib-add}
+\bibliographystyle{named-wits}
+\bibpunct{[}{]}{;}{a}{}{}  % to get correct punctuation for bibliography
+\setlength{\skip\footins}{1.5cm}
+\newcommand{\citets}[1]{\citeauthor{#1}'s \citeyearpar{#1}}
+\renewcommand\bibname{References}  
+
+\titleclass{\subsubsubsection}{straight}[\subsection]
+
+\newcounter{subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection.\arabic{subsubsubsection}}
+\renewcommand\theparagraph{\thesubsubsubsection.\arabic{paragraph}} % optional; useful if paragraphs are to be numbered
+\newcommand\myworries[1]{\textcolor{red}{#1}}
+\titleformat{\subsubsubsection}
+  {\normalfont\normalsize\bfseries}{\thesubsubsubsection}{1em}{}
+\titlespacing*{\subsubsubsection}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+\makeatletter
+\renewcommand\paragraph{\@startsection{paragraph}{5}{\z@}%
+  {3.25ex \@plus1ex \@minus.2ex}%
+  {-1em}%
+  {\normalfont\normalsize\bfseries}}
+\renewcommand\subparagraph{\@startsection{subparagraph}{6}{\parindent}%
+  {3.25ex \@plus1ex \@minus .2ex}%
+  {-1em}%
+  {\normalfont\normalsize\bfseries}}
+\def\toclevel@subsubsubsection{4}
+\def\toclevel@paragraph{5}
+\def\toclevel@paragraph{6}
+\def\l@subsubsubsection{\@dottedtocline{4}{7em}{4em}}
+\def\l@paragraph{\@dottedtocline{5}{10em}{5em}}
+\def\l@subparagraph{\@dottedtocline{6}{14em}{6em}}
+\makeatother
+
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+
+
+\pagestyle{headings}
+
+\pagestyle{plain}
+\pagenumbering{roman}
+
+\renewenvironment{abstract}{\ \vfill\begin{center}\textbf{Abstract}\end{center}\addcontentsline{toc}{section}{Abstract}}{\vfill\vfill\newpage}
+\newenvironment{declaration}{\ \vfill\begin{center}\textbf{Declaration}\end{center}\addcontentsline{toc}{section}{Declaration}}{\vfill\vfill\newpage}
+\newenvironment{acknowledgements}{\ \vfill\begin{center}\textbf{Acknowledgements}\end{center}\addcontentsline{toc}{section}{Acknowledgements}}{\vfill\vfill\newpage}
+
+\begin{document}
+\onecolumn
+\thispagestyle{empty}
+
+\setcounter{page}{0}
+\addcontentsline{toc}{chapter}{Preface}
+\ 
+\begin{center}
+  \vfill
+  {
+  \huge \bf \textsc{Title}\\
+  \large Literature Review\\[20pt]
+  \large School of Computer Science \& Applied Mathematics\\
+  \large University of the Witwatersrand\\[20pt]
+  \normalsize
+   Sashin Samlal\\
+   2459211\\[20pt]
+  Supervised by: Branden Ingram \\[10pt]
+  \today
+  }
+
+  \vfill
+  \vfill
+  \includegraphics[width=5cm]{images/wits}
+  \vspace{10pt}\\
+  % \small{Ethics Clearance Number: XX/XX/XX}\\[10pt]
+  %\small{A dissertation submitted to the Faculty of Science, University of the Witwatersrand, Johannesburg,
+%in partial fulfilment of the requirements for the degree of Masters of Science}\\
+\end{center}
+\vfill
+\newpage
+
+\pagestyle{plain}
+\setcounter{page}{1}
+
+\phantomsection
+%\begin{abstract} 
+%\end{abstract}
+
+\phantomsection
+\begin{declaration}
+I, Sashin Samlal hereby declare the contents of this research document to be my own work. This document is submitted for degree purposes in Computer Science at the University of the Witwatersrand. 
+This work has not been submitted to any other university, or for any other degree.\\
+Date: 19/04/2026
+\end{declaration}
+
+ 
+
+
+\phantomsection
+\addcontentsline{toc}{section}{Table of Contents}
+\tableofcontents
+\newpage
+% \phantomsection
+% \addcontentsline{toc}{section}{List of Figures}
+% \listoffigures
+% \newpage
+% \phantomsection
+% \addcontentsline{toc}{section}{List of Tables}
+% \listoftables
+% \newpage
+\pagenumbering{arabic}
+
+\chapter{Introduction} \label{chapter: introduction}
+
+The barrier to entry for the RoboCup Small Size League (SSL) is primarily defined by the prohibitive cost of specialized robotic hardware and the inherent complexity of high-level algorithm implementation. 
+These limitations often exclude researchers and institutions with limited funding from contributing to the advancement of multi-agent systems and competitive robotics.
+
+In a South African context, where the top 10\% of the population captures approximately 70\% of the national income \citep{czajka2026thirty}, 
+this creates a severe digital divide that hinders the potential growth of the robotics field. 
+Because robotics education is highly resource-intensive and relies on expensive hardware, software, 
+and stable internet infrastructure under-resourced rural public schools are frequently excluded from these advancements \cite{mapheto2023teachers}. 
+Consequently, this financial barrier restricts the broader societal impact of robotics innovation, 
+confining the development of vital 21st-century technological skills primarily to well-resourced private institutions and a privileged economic minority
+
+A critical solution to this cost barrier lies in the development of a standardized, competition-capable robotic platform that utilizes additive manufacturing and open-source middleware to simplify hardware-software integration. 
+Such a design provides an accessible entry point, fostering wider participation in the SSL and stimulating broader interest in autonomous systems. 
+
+Historically, low-cost approaches have relied on a "hobbyist" paradigm, utilizing off-the-shelf boards and structural components sourced from general hardware suppliers, such as sheet metal. 
+While various open-source middleware solutions exist to facilitate software standardization, integrating disparate hobbyist components remains a significant challenge due to proprietary communication protocols and manufacturer-specific constraints. 
+Furthermore, traditional manufacturing methods like welding or metalwork require specialized skills to meet the strict dimensional tolerances mandated by league regulations. 
+
+However, the rapid advancement and cost-effectiveness of 3D printing technology now allow for the production of standardized, modular, and easily reproducible structural components. 
+By integrating this hardware with the Robot Operating System (ROS) middleware, it is possible to create a standardized interface that abstracts low-level control and enables seamless transition between simulation and physical deployment.
+
+The establishment of this unified hardware-software framework further permits the implementation of standardized benchmarking suites, providing a rigorous environment for the performance evaluation of diverse robotic components and autonomous strategies. 
+
+\chapter{Background}\label{chapter: background}
+
+The RoboCup Small Size League (SSL) represents a highly constrained environment designed to promote research in fast-paced multi-robot systems. 
+To understand the benchmarking of a custom low-cost platform against standard solutions, it is necessary to establish the regulatory and physical parameters of the league. 
+Table \ref{tab:ssl_rules} summarizes the core technical standards mandated by the league.
+
+\begin{table}[H]
+    \centering
+    \caption{RoboCup SSL Division B Technical Standards \cite{ssl_rules_2026}.}
+    \label{tab:ssl_rules}
+    \begin{tabularx}{\textwidth}{l l X}
+        \toprule
+        \textbf{Parameter} & \textbf{Regulation} & \textbf{Design Impact} \\
+        \midrule
+        Robot Volume & \SI{180}{\mm} $\times$ \SI{150}{\mm} height & Constrains motor size and wheel geometry. \\
+        Ball Velocity & Max \SI{6.5}{\meter/second} & Defines limits for solenoid/pneumatic kicker systems. \\
+        Ball Interaction & $< 20\%$ coverage & Prevents ball hoarding; requires precise dribbler geometry. \\
+        Halt Latency & $< 2.0\text{s}$ to zero velocity & Mandates high-frequency braking control. \\
+        Stop Speed & Max \SI{1.5}{\meter/second} & Requires real-time speed regulation in the control stack. \\
+        Vision & Overhead SSL-Vision & Necessitates dot-pattern ID and distributed processing. \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\section{Design Implications of Technical Constraints}
+
+These regulations are not merely boundary conditions; they directly influence the scientific and engineering trade-offs required to build a competition-capable platform.
+
+\subsection{Spatial Constraints and Mechanical Packaging}
+The strict $180\text{mm} \times 150\text{mm}$ cylindrical volume creates a complex "packing problem" for the robotic chassis. 
+In competitive, high-cost units, this volume is typically maximized using four-wheel omnidirectional drives to achieve holonomic movement. 
+However, implementing such a drive requires precise geometric placement of four independent motors and wheels within the circular convex hull,
+ significantly increasing mechanical complexity and decreasing the space available for batteries and low-level electronics. \citep{ateam2023tdp}
+
+By contrast, a differential-drive system simplifies this spatial constraint by utilizing only two independent drive wheels. 
+While this introduces non-holonomic constraints---requiring the robot to rotate before translating---it allows for a more robust and modular internal layout. 
+This study benchmarks whether such a simplified mechanical design, optimized for 3D printing, can still meet the maneuverability requirements of the league while remaining financially accessible.
+
+\subsection{Temporal Constraints and Control Theory}
+The league's safety protocols, specifically the "Halt" and "Stop" commands, impose rigorous temporal constraints on the control architecture. 
+The requirement to reach zero velocity within two seconds of a "Halt" signal necessitates a control stack capable of high-frequency sampling and rapid deceleration profiles. 
+
+Furthermore, maintaining a maximum speed of $1.5\text{m/s}$ during "Stop" phases requires precise velocity estimation. 
+These constraints motivate the integration of a PID or Model Predictive Control (MPC) loop within the software stack to manage discretization delays and sensor noise,
+ ensuring that the physical platform adheres to the safety standards defined by the referee box (refbox). \citep{pacheco2015testing}
+
+\subsection{Information Constraints and Distributed Systems}
+The prohibition of human intervention and the reliance on the centralized SSL-Vision system motivate a distributed "software glue" architecture. 
+Since all positional data is generated by overhead cameras and distributed via wireless packets, the robot cannot rely on local on-board vision. 
+
+This creates a dependency on network latency and external state estimation. 
+To address this, the proposed architecture utilizes a Single Board Computer (SBC) running the Robot Operating System (ROS) to bridge the gap between centralized vision commands and local motor execution.\cite{smit2011development} \cite{joseph2018robot} 
+This distributed intelligence allows the platform to handle global strategy while maintaining local control stability, a critical requirement for high-speed autonomous play.
+
+\chapter{Related Work}\label{chapter: related}
+The development of robotic platforms for competitive environments like the RoboCup Small Size League (SSL) has evolved through distinct shifts in locomotion strategy, software architecture, and manufacturing philosophy. This section explores these transitions to motivate the design of a low-cost, 3D-printed benchmarking platform.
+
+\subsection{Locomotion and Drive Mechanisms}
+
+The high-speed, dynamic nature of robotic soccer has traditionally necessitated the use of complex holonomic drives to allow for simultaneous translation and rotation. 
+While platforms designed for the SSL overwhelmingly utilize omnidirectional drive mechanisms, their dominance is justified by the critical requirement to decouple heading from velocity vectors. 
+This decoupling allows a robot to maintain its orientation toward the ball or a target while translating in any direction, a capability that is essential for high-frequency ball interception and defensive "side-shuffling."
+
+Despite their tactical superiority, omnidirectional systems impose a significant "complexity tax." 
+Implementing a four-wheel omni-drive requires the geometric synchronization of four independent motors, which increases the probability of mechanical failure and reduces the internal volume available for power-dense components. 
+Recent literature, such as the \textit{First Order} TDP \cite{liang2025first}, highlights that the transition to a compact holonomic base often requires a complete mechanical redesign to manage these spatial trade-offs.
+
+By contrast, the differential-drive approach represents a strategic sacrifice of agility for the sake of mechanical robustness and cost-efficiency. 
+The "Non-Holonomic Penalty" emerged as a key performance bottleneck; differential robots must perform a "rotate-then-translate" maneuver, which introduces a measurable latency in response to rapid changes in ball trajectory. 
+Tactically, this limitation makes differential platforms less effective in goal-tending scenarios where lateral movement is paramount. 
+
+Quantitatively, studies benchmarking these systems indicate that differential drive robots can experience an increase in "Time-to-Target" metrics and path planning complexity compared to holonomic peers \cite{chavan2015design}. 
+However, for a low-cost 3D-printed platform, the differential drive simplifies the control stack and reduces manufacturing barriers. 
+This project leverages the differential approach, following the success of the \textit{MICROMVP} platform \cite{yu2017portable}, to determine if the loss in agility is a justifiable trade-off for a benchmarking-focused research platform.
+
+\subsection{Evolution of System Architecture and Middleware}
+
+The development of the RoboCup SSL has been marked by a fundamental shift from centralized "dumb" agents to distributed, intelligent architectures. 
+Early systems relied on a single off-field computer to process vision data and transmit low-level actuator duty cycles directly to robots. 
+However, the increasing complexity of multi-robot coordination and the need to reduce dependency on high-bandwidth wireless links motivated the adoption of on-board Single Board Computers (SBCs) capable of local state estimation and motor control \cite{smit2011development}.
+
+The transition to distributed intelligence necessitated a standardized "software glue" to manage inter-process communication. 
+While early research utilized the Player/Stage middleware, the Robot Operating System (ROS) emerged as the dominant standard due to its modular "computational graph" and robust ecosystem of visualization and diagnostic tools \cite{joseph2018robot}. 
+ROS simplified the integration of disparate hardware by providing a common messaging interface, allowing researchers to focus on high-level algorithm development rather than low-level driver implementation.
+
+Despite its success, the evolution from ROS1 to ROS2 represents a critical technical milestone for the SSL environment. 
+ROS1 utilized a centralized "ROS Master" and a TCP-based transport layer, which introduced a single point of failure and was ill-suited for the unreliable wireless networks of a competition floor. 
+In contrast, ROS2 adopts a decentralized architecture based on the Data Distribution Service (DDS). 
+By eliminating the Master and introducing configurable Quality of Service (QoS) policies (such as "Best Effort" and "Transient Local"), ROS2 provides the reliability and multi-robot discovery capabilities required for dynamic agent interaction \cite{macenski2022robot}
+
+However, the adoption of ROS introduces significant performance trade-offs, particularly regarding real-time determinism. 
+Standard ROS running on a non-preemptive Linux kernel is inherently non-deterministic; the standard CFS (Completely Fair Scheduler) prioritizes overall throughput over meeting strict millisecond deadlines \cite{kronauer2021latency}. 
+This introduces "jitter" into control loops that can degrade the stability of high-speed platforms. 
+Furthermore, the communication overhead of message serialization and deserialization, the process of transforming data structures into binary buffers for the DDS, can introduce latencies that impact the 60Hz feedback cycles provided by SSL-Vision. \cite{gutierrez2018towards}. 
+This study analyzes whether these architectural overheads can be mitigated through zero-copy intra-process communication or if they necessitate the use of PREEMPT\_RT kernel patches to bridge the "reality gap" in software timing.
+
+\subsection{Accessibility through Cost Optimization}
+The high barrier to entry in robotics is often defined by manufacturing complexity. To overcome this, recent literature highlights a move away from expensive machined metal toward additive manufacturing. Teams have increasingly utilized 3D-printed plastics to reduce costs and increase design flexibility for complex components \cite{liang2025first}. 
+
+This accessibility is further enhanced by combining 3D printing with off-the-shelf electronics. The \textit{MICROMVP} platform demonstrates that a highly affordable micro-scale testbed is achievable through this combination \cite{yu2017portable}. Furthermore, \cite{joseph2018robot} provides a framework for bridging high-level ROS nodes running on an SBC directly to low-level, inexpensive microcontrollers, an approach central to this project’s hardware design.
+
+\subsection{Bridging the Gap: Simulation vs. Physical Validation}
+Validation of multi-agent algorithms often occurs in virtual environments to bypass the costs of physical testing. For the RoboCup Middle Size League, researchers developed a simulation system based on ROS and Gazebo, utilizing a custom model plugin to mathematically simulate locomotion \cite{yao2015simulation}. 
+
+While such simulations simplify robots into basic cylindrical collision elements to preserve computational speed, they require the injection of Gaussian noise to mimic real-world sensor inaccuracies \cite{yao2015simulation}. This "reality gap" motivates the necessity of the current project: by building a physical benchmarking platform, we can quantitatively evaluate how algorithms perform against real-world friction, battery dynamics, and discretization delays that simplified virtual models often fail to capture within the constraints defined by the official league rules \cite{ssl_rules_2026}.
+
+\chapter{Conclusion}\label{chapter: conclusion}
+This literature review has explored the evolving landscape of robotic platforms within the RoboCup Small Size League, focusing on the trade-offs between mechanical complexity and research accessibility. The synthesis of current research reveals a significant "reality gap" where high-performance, holonomic competition units remain prohibitively expensive and mechanically complex for emerging teams, while virtual simulations often fail to capture the nuances of physical friction and sensor noise.
+
+The review identified four key pillars essential for modern robotics research: the shift from omnidirectional dominance to viable differential drive alternatives for constrained environments; the transition from centralized off-field processing to distributed, ROS-compatible software architectures; the utilization of additive manufacturing (3D printing) to lower financial barriers; and the critical need for physical benchmarking against industry standards like the TurtleBot v2.
+
+In conclusion, there is a clear need for a standardized, low-cost development platform that bridges the gap between simulation and competition-ready hardware. By integrating off-the-shelf electronics with a modular 3D-printed shell and a robust ROS middleware, the proposed project addresses the identified mechanical roadblocks. This platform will not only provide a credible iteration for quantitative benchmarking but also serves as a replicable entry point for talented researchers in resource-constrained regions, ultimately fostering broader participation and innovation within the field of multi-agent robotics.
+
+\bibliography{references}\addcontentsline{toc}{chapter}{References}
+\includepdf[pages=-]{declaration.pdf}
+\end{document}

@@ -1,0 +1,65 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage[authoryear]{natbib}
+\usepackage{bibentry}
+
+\geometry{
+  a4paper,
+  left=30mm,
+  right=30mm,
+  top=20mm,
+  heightrounded,
+}
+
+% Make natbib use square brackets for author-year citations.
+% \citet{key}  -> Author [Year]
+% \citep{key}  -> [Author Year]
+\setcitestyle{authoryear,open={[},close={]}}
+
+% Required for \bibentry to work.
+\nobibliography*
+
+\newcommand{\annote}[5]{%
+  \begingroup
+  \parindent 0pt
+  \hangafter=1
+  \hangindent=1em
+  \citet{#1}\par
+  \bibentry{#1}\par
+  \begin{quote}
+    \textbf{Aim:}\quad #2\par
+    \textbf{Style/Type:}\quad #3\par
+    \textbf{Cross References:}\quad #4\par
+    \textbf{Summary:}\quad #5\par
+  \end{quote}
+  \endgroup
+}
+
+\title{\textbf{Annotated Bibliography}}
+\author{Prepared by: Full Name (Student Number))}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+ 
+
+
+% We have provided a custom annote function here which handles the formatting
+
+% Additionally make sure to use \citet{} and \citep{} functions appropriately to reference papers in your text.
+
+\annote{pearce2022counter}
+{Type Aim here}
+{Specify type and style here}
+{Indicate cross references here}
+{Provide your summary here}
+
+
+% Keep this at the end so bibentry can access the .bib database.
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

@@ -1,0 +1,74 @@
+[
+  {
+    "page": 5,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "The section motivates cost and access well, but it does not end in a precise research question or hypothesis. Add an explicit question such as whether a low-cost differential-drive, 3D-printed platform can satisfy a defined subset of SSL performance constraints under a specified control architecture. Or Consider focusing on performance in particular scenarios. It is ok if we deviate from these scenarios later but we need to have one in mind here."
+  },
+  {
+    "page": 7,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "You introduce PID and MPC, but the methodology later implements only PID. Remove MPC from the framing unless the proposal will genuinely compare controllers."
+  },
+  {
+    "page": 9,
+    "author": "brand",
+    "referenced_text": "3",
+    "comment": "The literature review does not distinguish clearly between educational low-cost platforms and competition-grade SSL robots. Build that distinction explicitly because it is central to the proposed contribution."
+  },
+  {
+    "page": 12,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "We need a problem statement and research questions section with appropriate content included.\r\rRight now the proposal says, in effect, \"I will build a robot and test it.\" That is not enough for research. The reader needs to know exactly what you are trying to prove. Otherwise, even if the robot works, it will be unclear what lesson the results are meant to support.\r\rState one primary research question and, if needed, one or two secondary questions. For example: can a low-cost differential-drive platform built from 3D-printed parts and low-cost electronics satisfy a defined subset of SSL motion and control requirements? Then map each benchmark directly to that question."
+  },
+  {
+    "page": 13,
+    "author": "brand",
+    "referenced_text": "g\ny g\ny\ng\ninternal gearheads, which increase output torque at low rotational velocities. To track\nand regulate the dynamic motion of the platform in real time, the chassis houses an\nMPU6050 three-axis accelerometer. This sensor communicates with the microcontrolleri",
+    "comment": "The controller is framed as a wheel-velocity controller, but the measured feedback signal is an MPU6050 accelerometer.\r\rIs that not misaligned, or am I confused, are you trying to control speed using a sensor that does not directly tell you the speed you need."
+  },
+  {
+    "page": 14,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "Can we restucture this\r\rTo have sections for different scenarios which are going to be used to benchmark the two robots.\r\rAnd inside each of these or seperately we have a section called metrics which formalise how we are going to score each of these.\r\rYou kinda have the metrics just not the scenarios, these could be goto X tasks, which or other types of navigation as an example"
+  },
+  {
+    "page": 14,
+    "author": "brand",
+    "referenced_text": "PWM Signals",
+    "comment": "ideally not have this overlap"
+  },
+  {
+    "page": 14,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "The protocol does not explain calibration, synchronization, or logging. I am not saying it is needed but it is worth thinking about the needed procedures for timestamp alignment, clock source selection, trial reset conditions, battery-state control, and floor-surface consistency."
+  },
+  {
+    "page": 14,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "I know we have been going with the turtlebot, but we actually have Jetbots as well. For better science lets include a 3rd baseline that of the JetBot - https://jetbot.org/master/"
+  },
+  {
+    "page": 14,
+    "author": "brand",
+    "referenced_text": "N/A (Sticky Note)",
+    "comment": "The software stack is described in a way that mixes different generations of ROS. That makes it hard to know what system is actually being built, and the timing results depend on that choice. Can you maybe just let me know why the different versions are needed like over WhatsApp"
+  },
+  {
+    "page": 15,
+    "author": "brand",
+    "referenced_text": "The third benchmark assesses the trajectory accuracy of the platform using an M-\nshaped path test. Path fidelity, Epath, is quantified using the root-mean-square error",
+    "comment": "The path-following test uses an M-shaped trajectory without explaining why that path is representative. Justify the path design or include several path classes that test straight motion, turning, and stop-start control separately."
+  },
+  {
+    "page": 17,
+    "author": "brand",
+    "referenced_text": "Table 5.1: Proposed Schedule of Work (June 30 \u2013 August 30)",
+    "comment": "This is very optimistic, what is the maximum time you are allowed."
+  }
+]

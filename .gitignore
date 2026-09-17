@@ -1,0 +1,6 @@
+*.png
+data/*.zip
+*.zip
+*.jpg
+*.svg
+.agent
