@@ -1,0 +1,14 @@
+# ROS 2 Colcon build artifacts
+build/
+install/
+log/
+
+# Benchmark evaluation outputs
+benchmark_results/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Docker
+.docker/

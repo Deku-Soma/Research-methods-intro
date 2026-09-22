@@ -4,6 +4,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import Command, LaunchConfiguration
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     pkg_share = get_package_share_directory('ssl_robot_description')
@@ -12,7 +13,10 @@ def generate_launch_description():
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='false')
 
-    robot_description = Command(['xacro ', LaunchConfiguration('model', default=default_model_path)])
+    robot_description = ParameterValue(
+        Command(['xacro ', LaunchConfiguration('model', default=default_model_path)]),
+        value_type=str
+    )
 
     node_robot_state_publisher = Node(
         package='robot_state_publisher',

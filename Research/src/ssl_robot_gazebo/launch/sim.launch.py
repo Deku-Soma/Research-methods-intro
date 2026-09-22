@@ -6,6 +6,7 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 def generate_launch_description():
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
@@ -25,9 +26,9 @@ def generate_launch_description():
         "'", os.path.join(pkg_robot_gazebo, 'worlds'), "/' + '", world_name, "'"
     ])
 
-    # Robot Description via Xacro
+    # Robot Description via Xacro wrapped as ParameterValue for ROS 2 Humble
     xacro_file = os.path.join(pkg_robot_desc, 'urdf', 'robot.urdf.xacro')
-    robot_description = Command(['xacro ', xacro_file])
+    robot_description = ParameterValue(Command(['xacro ', xacro_file]), value_type=str)
 
     # 1. Gazebo Server
     gzserver = IncludeLaunchDescription(
