@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ========================================== -->
+  <!-- MPU6050 IMU Sensor Frame                     -->
+  <!-- Centered exactly at axle line (r_offset = 0) -->
+  <!-- eliminates centrifugal / centripetal offset -->
+  <!-- ========================================== -->
+  <link name="imu_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.020 0.003"/> <!-- GY-521 PCB Dimensions -->
+      </geometry>
+      <material name="pcb_blue">
+        <color rgba="0.1 0.2 0.8 1.0"/>
+      </material>
+    </visual>
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.005"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+    </inertial>
+  </link>
+
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <!-- Positioned on the chassis bottom floor directly between wheel axles -->
+    <origin xyz="0 0 0.005" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ========================================== -->
+  <!-- Overhead Tracking Target Frame (Sigil)     -->
+  <!-- ========================================== -->
+  <link name="tracking_sigil_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.001"/>
+      <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+    </inertial>
+  </link>
+
+  <joint name="tracking_sigil_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="tracking_sigil_link"/>
+    <origin xyz="0 0 0.070" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ========================================== -->
+  <!-- Room for Onboard/Overhead Camera Option    -->
+  <!-- Can be enabled via use_camera argument     -->
+  <!-- ========================================== -->
+  <xacro:arg name="enable_camera" default="false"/>
+
+  <xacro:if value="$(arg enable_camera)">
+    <link name="camera_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.015 0.025 0.015"/>
+        </geometry>
+        <material name="camera_black">
+          <color rgba="0.05 0.05 0.05 1.0"/>
+        </material>
+      </visual>
+      <inertial>
+        <mass value="0.010"/>
+        <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+      </inertial>
+    </link>
+
+    <joint name="camera_joint" type="fixed">
+      <parent link="base_link"/>
+      <child link="camera_link"/>
+      <origin xyz="0.045 0 0.060" rpy="0 0 0"/>
+    </joint>
+  </xacro:if>
+
+</robot>

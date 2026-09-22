@@ -1,0 +1,10 @@
+{
+    "python-envs.pythonProjects": [
+        {
+            "path": "Research",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
+    "cmake.sourceDirectory": "/Users/SashinS/Personal/Research-methods-intro/Research/src/ssl_robot_interfaces"
+}

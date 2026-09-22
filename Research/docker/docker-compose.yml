@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  ros2_sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ssl_robot_simulation:humble
+    container_name: ssl_robot_simulation
+    shm_size: '2gb'
+    ipc: host
+    ports:
+      - "6080:6080"  # noVNC browser interface (http://localhost:6080/vnc.html)
+      - "5901:5901"  # Native VNC port
+    volumes:
+      - ..:/ros2_ws:rw
+    environment:
+      - DISPLAY=:1
+      - ROS_DOMAIN_ID=0
+    working_dir: /ros2_ws
+    command: ["/start_novnc.sh"]

@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Wheel Dimensions -->
+  <xacro:property name="wheel_radius" value="0.025"/>       <!-- 50mm diameter -->
+  <xacro:property name="wheel_width" value="0.012"/>        <!-- 12mm width -->
+  <xacro:property name="wheel_separation" value="0.090"/>   <!-- 90mm track width -->
+  <xacro:property name="wheel_mass" value="0.035"/>         <!-- 35g per wheel + motor hub -->
+
+  <!-- Caster Dimensions -->
+  <xacro:property name="caster_radius" value="0.010"/>
+  <xacro:property name="caster_mass" value="0.015"/>
+  <xacro:property name="caster_offset_x" value="0.035"/>    <!-- Front passive caster -->
+  <xacro:property name="caster_offset_z" value="-0.015"/>   <!-- Bottom clearance alignment -->
+
+  <!-- Wheel Macro -->
+  <xacro:macro name="drive_wheel" params="prefix y_reflect">
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="rubber_black">
+          <color rgba="0.1 0.1 0.1 1.0"/>
+        </material>
+      </visual>
+
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+
+      <inertial>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <mass value="${wheel_mass}"/>
+        <inertia 
+          ixx="${(1.0/12.0) * wheel_mass * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+          ixy="0.0" 
+          ixz="0.0" 
+          iyy="${(1.0/12.0) * wheel_mass * (3*wheel_radius*wheel_radius + wheel_width*wheel_width)}" 
+          iyz="0.0" 
+          izz="${(1.0/2.0) * wheel_mass * (wheel_radius*wheel_radius)}"/>
+      </inertial>
+    </link>
+
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="0 ${y_reflect * wheel_separation / 2.0} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <!-- Instantiate Left and Right Wheels -->
+  <xacro:drive_wheel prefix="left" y_reflect="1"/>
+  <xacro:drive_wheel prefix="right" y_reflect="-1"/>
+
+  <!-- Front Passive Caster Wheel -->
+  <link name="caster_wheel_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+      <material name="metal_grey">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="${caster_mass}"/>
+      <inertia 
+        ixx="${(2.0/5.0) * caster_mass * caster_radius * caster_radius}" 
+        ixy="0.0" 
+        ixz="0.0" 
+        iyy="${(2.0/5.0) * caster_mass * caster_radius * caster_radius}" 
+        iyz="0.0" 
+        izz="${(2.0/5.0) * caster_mass * caster_radius * caster_radius}"/>
+    </inertial>
+  </link>
+
+  <joint name="caster_wheel_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="caster_wheel_link"/>
+    <origin xyz="${caster_offset_x} 0 ${caster_offset_z}" rpy="0 0 0"/>
+  </joint>
+
+</robot>

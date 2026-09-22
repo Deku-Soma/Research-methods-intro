@@ -1,0 +1,11 @@
+std_msgs/Header header
+string scenario_name
+uint32 trial_number
+float32 max_velocity
+float32 stopping_time
+float32 stopping_distance
+float32 path_rmse
+float32 command_latency_ms
+float32 turning_radius
+bool passed_ssl_criteria
+string notes

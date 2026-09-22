@@ -1,0 +1,20 @@
+{
+  "name": "ROS 2 Humble SSL Simulation",
+  "dockerComposeFile": "../docker/docker-compose.yml",
+  "service": "ros2_sim",
+  "workspaceFolder": "/ros2_ws",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-vscode.cpptools",
+        "ms-iot.vscode-ros"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "python.defaultInterpreterPath": "/usr/bin/python3"
+      }
+    }
+  },
+  "remoteUser": "rosuser"
+}

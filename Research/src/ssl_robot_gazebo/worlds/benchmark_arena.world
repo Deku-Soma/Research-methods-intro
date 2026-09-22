@@ -1,0 +1,146 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <world name="benchmark_arena_world">
+    <!-- Sun Light -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- Physics Parameters -->
+    <physics type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <real_time_update_rate>1000</real_time_update_rate>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>50</iters>
+          <sor>1.3</sor>
+        </solver>
+      </ode>
+    </physics>
+
+    <!-- Arena Floor -->
+    <model name="arena_floor">
+      <static>true</static>
+      <link name="floor_link">
+        <collision name="floor_collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>14.0 10.0</size>
+            </plane>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>1.0</mu>
+                <mu2>1.0</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <visual name="floor_visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>14.0 10.0</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.12 0.35 0.20 1.0</ambient>
+            <diffuse>0.15 0.40 0.25 1.0</diffuse>
+          </material>
+        </visual>
+
+        <!-- ============================================== -->
+        <!-- Scenario 1: 5-Meter Sprint Lane Markings       -->
+        <!-- ============================================== -->
+        <!-- Start Line (x = 0, y = -2) -->
+        <visual name="sprint_start_line">
+          <pose>0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.05 1.0 0.001</size></box></geometry>
+          <material><ambient>0 1 0 1</ambient><diffuse>0 1 0 1</diffuse></material>
+        </visual>
+        <!-- 1m Marker -->
+        <visual name="sprint_1m_line">
+          <pose>1.0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.02 0.5 0.001</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient></material>
+        </visual>
+        <!-- 2m Marker -->
+        <visual name="sprint_2m_line">
+          <pose>2.0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.02 0.5 0.001</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient></material>
+        </visual>
+        <!-- 3m Marker -->
+        <visual name="sprint_3m_line">
+          <pose>3.0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.02 0.5 0.001</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient></material>
+        </visual>
+        <!-- 4m Marker -->
+        <visual name="sprint_4m_line">
+          <pose>4.0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.02 0.5 0.001</size></box></geometry>
+          <material><ambient>1 1 1 1</ambient></material>
+        </visual>
+        <!-- 5m Halt Trigger Line -->
+        <visual name="sprint_halt_line">
+          <pose>5.0 -2.0 0.001 0 0 0</pose>
+          <geometry><box><size>0.05 1.0 0.001</size></box></geometry>
+          <material><ambient>1 0 0 1</ambient><diffuse>1 0 0 1</diffuse></material>
+        </visual>
+
+        <!-- ============================================== -->
+        <!-- Scenario 2: M-Shape Course Waypoint Markers    -->
+        <!-- ============================================== -->
+        <!-- M Waypoint 1: (0, 1.0) -->
+        <visual name="m_wp1">
+          <pose>0 1.0 0.002 0 0 0</pose>
+          <geometry><cylinder><radius>0.06</radius><length>0.001</length></cylinder></geometry>
+          <material><ambient>1 0.8 0 1</ambient></material>
+        </visual>
+        <!-- M Waypoint 2: (1.0, 3.0) -->
+        <visual name="m_wp2">
+          <pose>1.0 3.0 0.002 0 0 0</pose>
+          <geometry><cylinder><radius>0.06</radius><length>0.001</length></cylinder></geometry>
+          <material><ambient>1 0.8 0 1</ambient></material>
+        </visual>
+        <!-- M Waypoint 3: (2.0, 1.5) -->
+        <visual name="m_wp3">
+          <pose>2.0 1.5 0.002 0 0 0</pose>
+          <geometry><cylinder><radius>0.06</radius><length>0.001</length></cylinder></geometry>
+          <material><ambient>1 0.8 0 1</ambient></material>
+        </visual>
+        <!-- M Waypoint 4: (3.0, 3.0) -->
+        <visual name="m_wp4">
+          <pose>3.0 3.0 0.002 0 0 0</pose>
+          <geometry><cylinder><radius>0.06</radius><length>0.001</length></cylinder></geometry>
+          <material><ambient>1 0.8 0 1</ambient></material>
+        </visual>
+        <!-- M Waypoint 5: (4.0, 1.0) -->
+        <visual name="m_wp5">
+          <pose>4.0 1.0 0.002 0 0 0</pose>
+          <geometry><cylinder><radius>0.06</radius><length>0.001</length></cylinder></geometry>
+          <material><ambient>1 0.8 0 1</ambient></material>
+        </visual>
+
+      </link>
+    </model>
+
+    <!-- Simulated Overhead Rig Marker (Ready for real Gazebo camera plugin) -->
+    <model name="overhead_tracking_rig">
+      <static>true</static>
+      <pose>2.5 0 3.5 0 1.570796 0</pose>
+      <link name="mount_link">
+        <visual name="mount_vis">
+          <geometry><cylinder><radius>0.04</radius><length>0.1</length></cylinder></geometry>
+          <material><ambient>0.4 0.4 0.4 1</ambient></material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>
