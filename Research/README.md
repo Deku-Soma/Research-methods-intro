@@ -122,3 +122,8 @@ The simulation supports two localization modes in `overhead_tracking_node`:
 | View robot model in RViz | `ros2 launch ssl_robot_description display.launch.py` |
 | Stop container | `make down` |
 | Clean build artifacts | `make clean` |
+
+# TODO list
+* Add the turtle bot and the nvidia bot 
+* Add the two bots to the test bench so I can compare results for each robot
+* Draw up a comparitive table which documents the results for each robot and an evaluation of which robot performed better in each scenario
