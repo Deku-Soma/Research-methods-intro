@@ -8,9 +8,9 @@ Honours Research Project (2026)
 
 ## 1. Research Overview
 
-This repository hosts the complete academic and computational work for investigating the viability of a low-cost, 3D-printed differential-drive robotic platform for the RoboCup Small Size League (SSL) Division B.
+This repository hosts the academic and computational work for investigating the viability of a low-cost, 3D-printed differential-drive robotic platform for the RoboCup Small Size League (SSL).
 
-Standard SSL platforms utilize omnidirectional drive mechanisms and custom brushless motors that cost tens of thousands of Rands per robot. This cost establishes an economic barrier to entry that excludes under-resourced universities and schools, especially within the South African context. This research assesses whether non-holonomic differential-drive kinematics, governed by a dual-loop control architecture (laptop-side Linear Time-Varying Model Predictive Control and embedded microcontroller discrete PID), can satisfy SSL Division B operational constraints ($v \le 1.5\text{ m/s}$, $t_{\text{stop}} \le 2.0\text{ s}$).
+Standard SSL platforms utilize omnidirectional drive mechanisms and custom brushless motors that cost tens of thousands of Rands per robot. This cost establishes an economic barrier to entry that excludes under-resourced universities and schools, especially within the South African context. This research assesses whether non-holonomic differential-drive kinematics, governed by a dual-loop control architecture (laptop-side Linear Time-Varying Model Predictive Control and embedded microcontroller discrete PID), can satisfy SSL operational constraints ($v \le 1.5\text{ m/s}$, $t_{\text{stop}} \le 2.0\text{ s}$).
 
 The project evaluates the custom 3D-printed robot against two established commercial differential-drive baselines:
 1. **TurtleBot3 (Burger)**: The academic research standard for indoor SLAM and navigation.
@@ -76,10 +76,6 @@ Research methods intro/
 │   └── ... (20+ foundational research papers)
 │
 ├── python skills/                      # Research Automation Scripts
-│   └── comments_extraction.py          # Extracts reviewer feedback annotations from PDFs
-│
-└── .agents/                            # Coding agent instructions, rules, and review skills
-```
 
 ---
 
@@ -160,32 +156,6 @@ Or directly:
 ./scripts/sim_cli.sh
 ```
 
-### Option C: Direct Makefile Commands
-
-| Command | Action |
-| :--- | :--- |
-| `make build` | Builds Docker image and compiles ROS 2 workspace |
-| `make up` | Starts container (auto-detects WSLg / GPU / noVNC) |
-| `make sim` | Launches Gazebo simulation with custom SSL robot |
-| `make sim ROBOT=turtlebot3_burger` | Launches simulation with TurtleBot3 Burger |
-| `make sim ROBOT=jetbot` | Launches simulation with NVIDIA JetBot |
-| `make field` | Launches official RoboCup SSL match field |
-| `make benchmark` | Runs 10-trial evaluation on custom SSL robot |
-| `make benchmark ROBOT=jetbot SCENARIO=m_shape` | Runs benchmark on specific platform and path |
-| `make benchmark-all` | Runs full 3-platform comparative benchmark suite |
-| `make shell` | Opens interactive bash shell inside container |
-| `make down` | Stops all container services |
-| `make clean` | Removes Colcon build, install, log, and cache files |
-
-### Display Modes
-The simulation automatically selects the best visual interface:
-1. **Windows WSLg (Default on Windows 11)**: Renders native desktop windows with direct GPU acceleration.
-2. **Web Browser (noVNC Fallback)**: Accessible at `http://localhost:6080/vnc.html` without requiring any local X server configuration.
-
-To force browser mode:
-```bash
-make novnc
-```
 
 ---
 
@@ -227,25 +197,4 @@ Navigate to `Lit_review/`:
 ```bash
 cd Lit_review
 make              # Compiles main.tex -> main.pdf
-```
-
----
-
-## 7. Repository Cleanliness & Maintenance
-
-The repository uses strict `.gitignore` rules to keep version control clean:
-* LaTeX build artifacts (`*.aux`, `*.bbl`, `*.fls`, `*.log`, `*.out`, `*.toc`, `*.synctex.gz`) are excluded.
-* Python compilation artifacts (`__pycache__/`, `*.pyc`) are excluded.
-* ROS 2 build directories (`build/`, `install/`, `log/`, `benchmark_results/`) are excluded.
-* OS-specific metadata (`.DS_Store`, `Thumbs.db`) is excluded.
-
-To clean the simulation workspace at any time:
-```bash
-cd Research
-make clean
-```
-To clean LaTeX build files:
-```bash
-cd "Research proposal"
-make clean
 ```
