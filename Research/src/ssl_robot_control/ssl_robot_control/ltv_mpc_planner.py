@@ -72,8 +72,17 @@ class LTVMPCPlanner(Node):
         self.current_yaw = math.atan2(siny_cosp, cosy_cosp)
 
     def path_callback(self, msg: Path):
-        self.target_path = [(p.pose.position.x, p.pose.position.y) for p in msg.poses]
-        self.target_index = 0
+        new_path = [(p.pose.position.x, p.pose.position.y) for p in msg.poses]
+        if not new_path:
+            return
+        # Only reset index if path geometry actually changed or was not initialized
+        if (not self.target_path or 
+            len(new_path) != len(self.target_path) or 
+            new_path[0] != self.target_path[0] or 
+            new_path[-1] != self.target_path[-1]):
+            self.target_path = new_path
+            self.target_index = 0
+            self.is_halted = False
 
     def control_loop(self):
         if self.current_pose is None or not self.target_path or self.is_halted:
@@ -82,16 +91,27 @@ class LTVMPCPlanner(Node):
         cx = self.current_pose.position.x
         cy = self.current_pose.position.y
 
-        # Find closest path waypoint ahead
+        # Search forward along the path from current progress
         min_dist = float('inf')
         closest_idx = self.target_index
-        for i in range(self.target_index, min(len(self.target_path), self.target_index + 30)):
+        search_end = min(len(self.target_path), self.target_index + 60)
+        for i in range(self.target_index, search_end):
             dist = math.hypot(self.target_path[i][0] - cx, self.target_path[i][1] - cy)
             if dist < min_dist:
                 min_dist = dist
                 closest_idx = i
 
-        self.target_index = closest_idx
+        self.target_index = max(self.target_index, closest_idx)
+
+        # Advance waypoint when robot is close to current target waypoint
+        if self.target_index < len(self.target_path) - 1:
+            curr_target = self.target_path[self.target_index]
+            if math.hypot(curr_target[0] - cx, curr_target[1] - cy) < 0.20:
+                self.target_index = min(self.target_index + 1, len(self.target_path) - 1)
+
+        # Check distance to final goal waypoint
+        final_x, final_y = self.target_path[-1]
+        dist_to_final = math.hypot(final_x - cx, final_y - cy)
 
         # Generate horizon reference trajectory
         profile_msg = TrajectoryProfile()
@@ -115,8 +135,10 @@ class LTVMPCPlanner(Node):
             v_cmd = max(0.0, min(self.v_max, 1.2 * dist_error * math.cos(heading_error)))
             w_cmd = max(-self.w_max, min(self.w_max, 3.5 * heading_error))
 
-            # Stop if reached near final waypoint
-            if lookahead_idx >= len(self.target_path) - 1 and dist_error < 0.10:
+            has_traversed = self.target_index >= int(len(self.target_path) * 0.85)
+
+            # Stop if reached near final waypoint after traversing trajectory
+            if has_traversed and (dist_to_final < 0.20 or self.target_index >= len(self.target_path) - 2):
                 v_cmd = 0.0
                 w_cmd = 0.0
 
@@ -125,6 +147,12 @@ class LTVMPCPlanner(Node):
             step.omega_target = float(w_cmd)
             step.delta_ms = self.dt_ms
             profile_msg.steps.append(step)
+
+        # If arrived at destination after traversing path, halt robot
+        has_traversed = self.target_index >= int(len(self.target_path) * 0.85)
+        if has_traversed and (dist_to_final < 0.20 or self.target_index >= len(self.target_path) - 2):
+            self.is_halted = True
+            self.get_logger().info("Target trajectory completed. Halting robot.")
 
         # Publish horizon to micro-ROS client
         self.profile_pub.publish(profile_msg)
@@ -146,7 +174,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

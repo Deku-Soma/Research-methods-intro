@@ -20,9 +20,14 @@ class SimulatedPicoFirmware(Node):
     def __init__(self):
         super().__init__('simulated_pico_firmware')
 
-        # Kinematic parameters
-        self.wheel_radius = 0.025      # 25mm radius (50mm diameter)
-        self.wheel_separation = 0.090  # 90mm track width
+        # Kinematic parameters and baseline support
+        self.declare_parameter('robot_model', 'ssl_robot')
+        self.declare_parameter('wheel_radius', 0.025)       # 25mm radius for custom SSL robot
+        self.declare_parameter('wheel_separation', 0.090)   # 90mm track width for custom SSL robot
+
+        self.robot_model = self.get_parameter('robot_model').get_parameter_value().string_value
+        self.wheel_radius = self.get_parameter('wheel_radius').get_parameter_value().double_value
+        self.wheel_separation = self.get_parameter('wheel_separation').get_parameter_value().double_value
 
         # High-frequency loop parameter (Core 1 frequency)
         self.declare_parameter('control_rate_hz', 200.0) # 200 Hz
@@ -171,7 +176,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

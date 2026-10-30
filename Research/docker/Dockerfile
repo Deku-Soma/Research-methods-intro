@@ -65,7 +65,8 @@ WORKDIR /ros2_ws
 # Setup entrypoint and startup scripts
 COPY entrypoint.sh /entrypoint.sh
 COPY start_novnc.sh /start_novnc.sh
-RUN chmod +x /entrypoint.sh /start_novnc.sh
+RUN sed -i 's/\r$//' /entrypoint.sh /start_novnc.sh && \
+    chmod +x /entrypoint.sh /start_novnc.sh
 
 USER $USERNAME
 

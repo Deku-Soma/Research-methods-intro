@@ -1,6 +1,19 @@
 #!/bin/bash
 set -e
 
+if [ "$USE_HOST_DISPLAY" = "1" ] || [ "$USE_HOST_DISPLAY" = "true" ]; then
+    echo "==============================================================="
+    echo "  Host Display Mode Active (Hardware Acceleration Enabled)"
+    echo "  Rendering directly to host display: ${DISPLAY:-:0}"
+    echo "  noVNC service skipped."
+    echo "==============================================================="
+    if [ $# -gt 0 ]; then
+        exec "$@"
+    else
+        tail -f /dev/null
+    fi
+fi
+
 echo "Starting Xvfb display on :1 (1920x1080x24)..."
 Xvfb :1 -screen 0 1920x1080x24 &
 export DISPLAY=:1

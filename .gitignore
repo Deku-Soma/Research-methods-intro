@@ -1,6 +1,68 @@
+# ==============================================================================
+# Git Ignore Configuration - RoboCup SSL Differential Robot Research Workspace
+# ==============================================================================
+
+# LaTeX Build Artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.nav
+*.snm
+*.vrb
+*.run.xml
+*.bcf
+*.lot
+*.lof
+
+# Python Bytecode and Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ROS 2 Colcon Build Artifacts
+build/
+install/
+log/
+benchmark_results/
+Research/build/
+Research/install/
+Research/log/
+Research/benchmark_results/
+
+# Docker Local Overrides and Environment
+.env
+docker-compose.override.yml
+Research/docker/docker-compose.override.yml
+.docker/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Editor Temporary and Swap Files
+*~
+*.swp
+*.swo
+
+# Media and Archives
 *.png
-data/*.zip
-*.zip
 *.jpg
 *.svg
-.agent
+*.zip
+data/*.zip
+
+# Agent System Temporary State
+.agent/
+.agents/temp/

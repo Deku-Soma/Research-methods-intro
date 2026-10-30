@@ -42,9 +42,15 @@ class TrajectoryGenerator(Node):
         self.current_index = 0
         self.generate_trajectory()
 
-        # Publish path and target waypoint at 50 Hz
+        # Publish target waypoint at 50 Hz and reference path at 1 Hz
         self.timer = self.create_timer(0.02, self.timer_callback)
+        self.path_timer = self.create_timer(1.0, self.path_timer_callback)
         self.get_logger().info(f"Trajectory Generator started with scenario: '{self.scenario}'")
+
+    def path_timer_callback(self):
+        if hasattr(self, 'path_msg') and self.path_msg.poses:
+            self.path_msg.header.stamp = self.get_clock().now().to_msg()
+            self.path_pub.publish(self.path_msg)
 
     def scenario_callback(self, msg: String):
         req = msg.data.strip()
@@ -96,17 +102,17 @@ class TrajectoryGenerator(Node):
                     self.waypoints.append((float(wx), float(wy), float(heading), self.v_target))
 
         # Publish the full path message
-        path_msg = Path()
-        path_msg.header.stamp = self.get_clock().now().to_msg()
-        path_msg.header.frame_id = 'world'
+        self.path_msg = Path()
+        self.path_msg.header.stamp = self.get_clock().now().to_msg()
+        self.path_msg.header.frame_id = 'world'
         for wp in self.waypoints:
             p = PoseStamped()
             p.header.frame_id = 'world'
             p.pose.position.x = wp[0]
             p.pose.position.y = wp[1]
             p.pose.position.z = 0.025
-            path_msg.poses.append(p)
-        self.path_pub.publish(path_msg)
+            self.path_msg.poses.append(p)
+        self.path_pub.publish(self.path_msg)
 
     def timer_callback(self):
         if not self.waypoints:
@@ -135,7 +141,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
