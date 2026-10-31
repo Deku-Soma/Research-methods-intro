@@ -37,9 +37,10 @@ Research/
 │   ├── run_sim.sh                  # Launches Gazebo & visual GUI
 │   ├── run_benchmarks.sh           # Runs single-platform automated evaluation
 │   ├── run_comparative_benchmarks.sh # Runs 3-platform comparative evaluation
-│   ├── sim_cli.sh                  # Interactive Bash CLI for Linux / WSL
+│   ├── aggregate_benchmarks.py     # Aggregates multi-trial statistics (Mean ± SD)
+│   ├── sim_cli.sh                  # Simulation and benchmarking CLI for Linux / WSL
 │   └── shell.sh                    # Interactive terminal inside container
-├── sim_cli.ps1                     # Interactive Windows PowerShell simulation CLI
+├── sim_cli.ps1                     # Native Windows PowerShell simulation and benchmark CLI
 ├── Makefile                        # Quick development targets
 ├── todo.md                         # Milestone tracking and architectural review tasks
 ├── src/
@@ -81,78 +82,96 @@ Research/
 │       │   └── trial_orchestrator.py      # Multi-trial statistical batch aggregator
 │       └── launch/run_all_benchmarks.launch.py
 └── benchmark_results/              # Output CSV metrics (created upon test execution)
-    ├── benchmark_metrics_summary.csv
-    └── benchmark_comparative_master.csv
+    ├── benchmark_comparative_master.csv  # Raw trial log with RMSE, speed, and stopping metrics
+    ├── benchmark_statistical_summary.csv # Aggregated Mean ± SD matrix and pass rates
+    └── benchmark_summary_table.csv       # Formatted multi-platform summary table
 ```
 
 ---
 
-## 3. Quick Start Guide
+## 3. Simulation & Benchmarking CLI Reference
 
-### Step 1: Launch via Interactive Control Hub
+The workspace includes a command-line interface implemented for PowerShell (`sim_cli.ps1`) and Bash (`scripts/sim_cli.sh`). The CLI manages Docker services, launches Gazebo simulations, executes multi-trial benchmark suites, and calculates summary statistics.
 
-#### Windows (PowerShell):
+### PowerShell CLI (Windows)
+
+Execute commands from the `Research/` directory or root workspace:
+
 ```powershell
-.\sim_cli.ps1
+.\sim_cli.ps1 <command> [robot] [scenario] [-Trials <N>] [-Gui]
 ```
 
-#### Linux / WSL (Bash):
-```bash
-make cli
-```
-Or:
-```bash
-./scripts/sim_cli.sh
+#### Command Summary
+
+| Command | Arguments / Flags | Description |
+| :--- | :--- | :--- |
+| `run_all` | `[trials]` | Executes all robot platforms across all scenarios with 3D GUI enabled. Opens the browser viewer with a 6-second delay to begin screen recording. |
+| `record_all` | `[trials]` | Alias for `run_all`. |
+| `batch` | `-Robot <R> -Scenario <S> -Trials <N> [-Gui]` | Runs repeated trials back-to-back for a target platform and path geometry. |
+| `speed_test` | `-Robot <R> [-Gui]` | Evaluates unconstrained straight-line acceleration and terminal velocity over 5 meters without MPC limits. |
+| `speed_test_all` | `[-Gui]` | Executes unconstrained straight-line speed tests across all three robot platforms sequentially. |
+| `benchmark` | `-Robot <R> -Scenario <S> [-Gui]` | Executes a single trajectory evaluation trial with live tracking RMSE telemetry. |
+| `benchmark_all` | `[-Trials <N>] [-Gui]` | Executes the complete matrix of all robots across all trajectory scenarios. |
+| `summary` | *(none)* | Calculates sample count, Mean $\pm$ SD, and pass rates from recorded trials and displays the summary table. |
+| `sim` | `-Robot <R> -Scenario <S>` | Launches interactive Gazebo simulation and opens the 3D browser viewer. |
+| `build` | *(none)* | Compiles ROS 2 packages inside the container with colcon. |
+| `shell` | *(none)* | Opens an interactive bash shell inside the simulation container. |
+
+#### Example Invocations
+
+```powershell
+# Run the complete visual test suite for screen recording
+.\sim_cli.ps1 run_all 3
+
+# Execute 10 headless batch trials on the custom SSL robot
+.\sim_cli.ps1 batch -Robot ssl_robot -Scenario m_shape -Trials 10
+
+# Execute batch trials with live 3D visualization
+.\sim_cli.ps1 batch -Robot turtlebot3_burger -Scenario circular_arc -Trials 5 -Gui
+
+# Run unconstrained terminal speed tests
+.\sim_cli.ps1 speed_test -Robot ssl_robot -Gui
+.\sim_cli.ps1 speed_test_all
+
+# Print the statistical Mean ± SD summary table
+.\sim_cli.ps1 summary
 ```
 
-The interactive menu provides guided prompts to configure robot platform, path geometry, display interface, and benchmarking parameters.
+### Linux / WSL Bash CLI
+
+The Linux CLI provides equivalent functionality using positional arguments:
+
+```bash
+# Full visual recording sequence
+./scripts/sim_cli.sh run_all 3
+
+# Batch testing
+./scripts/sim_cli.sh batch ssl_robot m_shape 10
+
+# Unconstrained speed testing
+./scripts/sim_cli.sh speed_test ssl_robot
+./scripts/sim_cli.sh speed_test_all
+
+# Trajectory benchmark
+./scripts/sim_cli.sh benchmark jetbot circular_arc
+
+# Statistical aggregation
+./scripts/sim_cli.sh summary
+```
 
 ---
 
-### Step 2: Launch via Make Targets
+## 4. Visual Simulation & Screen Recording via noVNC
 
-#### Visual Simulation
-```bash
-make sim                                # Custom SSL robot on straight-line course
-make sim ROBOT=turtlebot3_burger        # TurtleBot3 Burger baseline
-make sim ROBOT=jetbot SCENARIO=m_shape  # JetBot on M-shape course
-```
+The simulation container renders 3D graphics through a virtual X11 framebuffer (`Xvfb :1`) paired with an internal VNC server (`x11vnc`) and WebSocket proxy (`websockify`). This configuration provides responsive 3D simulation streaming without host display server configuration:
 
-#### Official RoboCup SSL Match Field
-```bash
-make field
-```
-
-#### Single-Platform Automated Benchmark (10 Trials)
-```bash
-make benchmark ROBOT=ssl_robot SCENARIO=straight_line
-```
-
-#### Comparative Baseline Benchmarking (All 3 Platforms)
-```bash
-make benchmark-all SCENARIO=straight_line
-make benchmark-all SCENARIO=circular_arc
-make benchmark-all SCENARIO=m_shape
-```
-
----
-
-## 4. Hardware Detection & Display Modes
-
-The simulation automatically probes host display capabilities through `scripts/detect_hardware.sh`:
-
-1. **Windows WSLg (Default on Windows 11)**:
-   * Direct hardware acceleration using the host graphics card (NVIDIA RTX/GTX or Intel/AMD).
-   * Renders Gazebo and RViz directly as native Windows desktop windows.
-2. **Native Linux X11 / DRI**:
-   * Direct X11 socket forwarding with OpenGL DRI passthrough.
-3. **Web Browser Interface (noVNC Fallback)**:
-   * Accessible at **http://localhost:6080/vnc.html**.
-   * Ideal for headless servers or remote access.
-   * Can be forced explicitly at any time:
-     ```bash
-     make novnc
-     ```
+* **Browser Access URL**: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html)
+* **Automatic Launch**: Specifying `-Gui` on any command or invoking `sim` or `run_all` automatically opens the default web browser to this address.
+* **Connection**: Click the **Connect** button on the page to display the live Gazebo arena.
+* **Video Screen Recording**:
+  * Windows Game Bar: Press `Win + Alt + R` to start or stop recording the browser window.
+  * OBS Studio: Add a **Window Capture** source targeting the browser tab displaying the noVNC stream.
+  * Automated Delay: The `run_all` and `record_all` commands insert a 6-second countdown before simulation initialization, allowing the operator to focus the browser and begin recording.
 
 ---
 
@@ -176,25 +195,33 @@ Topic Name                       Type                                 Publisher 
 
 | Scenario Identifier | Trajectory Description | Key Evaluated Metrics |
 | :--- | :--- | :--- |
-| `straight_line` | 5.0 m linear sprint from origin to $(5.0, 0.0)$, followed by halt command. | $v_{\text{max}}$, acceleration, $t_{\text{stop}}$, $d_{\text{stop}}$ |
-| `circular_arc` | Steady-state circle of radius $R = 1.0\text{ m}$ centered at $(1.0, 0.0)$. | Steady-state tracking error, lateral centrifugal slip |
-| `m_shape` | Multi-waypoint course: $(0,0) \to (1.5, 2.0) \to (3.0, 0.5) \to (4.5, 2.0) \to (6.0, 0.0)$. | Transient cornering overshoot, yaw response, path RMSE |
+| `straight_line` | 5.0 m linear sprint from $(0,0)$ to $(5.0, 0.0)$ under LTV-MPC, followed by halt command. | $v_{\text{max}}$, acceleration, $t_{\text{stop}}$, $d_{\text{stop}}$, path RMSE |
+| `circular_arc` | Continuous curvature circle of radius $R = 1.0\text{ m}$ centered at $(1.0, 0.0)$. | Steady-state tracking error, lateral centrifugal slip, path RMSE |
+| `m_shape` | Waypoint course: $(0,0) \to (1.5, 2.0) \to (3.0, 0.5) \to (4.5, 2.0) \to (6.0, 0.0)$. | Transient cornering overshoot, yaw response, path RMSE |
+| `speed_test` | Unconstrained 5.0 m linear run at maximum motor torque without MPC saturation limits. | Physical platform terminal velocity, peak linear acceleration |
 
 ---
 
 ## 7. Results & Output Formats
 
-Execution data is exported to `benchmark_results/`:
+Benchmark trials record telemetry and performance data to `benchmark_results/`:
 
-* **`benchmark_metrics_summary.csv`**: Contains run-by-run metrics:
-  ```csv
-  trial_number,scenario,v_max_mps,stopping_time_s,stopping_distance_m,latency_ms,path_rmse_m,lateral_excursion_m
-  ```
+### Raw Comparative Log (`benchmark_comparative_master.csv`)
+Records each executed trial as an individual row with metrics including:
+```csv
+timestamp,robot_model,scenario,run_duration_s,v_max,t_stop,d_stop,path_rmse,passed
+2026-10-31 13:40:22,ssl_robot,Trajectory: m_shape,22.14,0.485,0.000,0.000,0.0762,True
+```
 
-* **`benchmark_comparative_master.csv`**: Master log recording multi-trial statistical aggregates across all platforms:
-  ```csv
-  timestamp,robot_model,scenario,num_trials,v_max_mean,v_max_std,t_stop_mean,t_stop_std,d_stop_mean,d_stop_std,path_rmse_mean,path_rmse_std,latency_mean,latency_std
-  ```
+### Statistical Summary Table (`benchmark_statistical_summary.csv`)
+Aggregated through `scripts/aggregate_benchmarks.py` (or `.\sim_cli.ps1 summary`), computing sample statistics for each platform and scenario pair:
+```csv
+robot_model,scenario,trials_count,path_rmse_mean_sd,v_max_mean_sd,t_stop_mean_sd,d_stop_mean_sd,pass_rate_pct
+ssl_robot,m_shape,3,0.0772 ± 0.0009,0.485 ± 0.000,N/A,N/A,100.0%
+ssl_robot,straight_line,5,0.0142 ± 0.0018,1.488 ± 0.012,0.360 ± 0.020,0.228 ± 0.014,100.0%
+turtlebot3_burger,straight_line,3,0.0195 ± 0.0006,0.220 ± 0.000,0.180 ± 0.000,0.038 ± 0.000,100.0%
+jetbot,straight_line,3,0.0210 ± 0.0008,0.350 ± 0.000,0.210 ± 0.010,0.045 ± 0.002,100.0%
+```
 
 ---
 
@@ -202,8 +229,9 @@ Execution data is exported to `benchmark_results/`:
 
 | Action | Command |
 | :--- | :--- |
-| Open interactive container bash shell | `make shell` |
-| Recompile ROS 2 packages inside container | `make colcon` |
+| Open interactive container bash shell | `.\sim_cli.ps1 shell` or `make shell` |
+| Recompile ROS 2 packages inside container | `.\sim_cli.ps1 build` or `make colcon` |
+| Terminate lingering simulation processes | `.\sim_cli.ps1 cleanup` |
 | Rebuild Docker container image | `make build-image` |
 | Stop container services | `make down` |
 | Clean Colcon build, install, log, and Python cache | `make clean` |

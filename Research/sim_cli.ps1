@@ -1,122 +1,185 @@
-# RoboCup SSL Interactive Simulation & Benchmark CLI for Windows PowerShell
-$ErrorActionPreference = "Stop"
+param (
+    [Parameter(Position=0)]
+    [ValidateSet("build", "sim", "benchmark", "batch", "speed_test", "speed_test_all", "benchmark_all", "run_all", "record_all", "summary", "shell", "cleanup", "help")]
+    [string]$Command = "help",
 
-Clear-Host
-Write-Host "===============================================================" -ForegroundColor Cyan
-Write-Host "  RoboCup SSL Research Simulation Control Hub (PowerShell)" -ForegroundColor Cyan
-Write-Host "===============================================================" -ForegroundColor Cyan
-Write-Host "Interactive CLI for simulation, baseline benchmarking, and analysis."
-Write-Host ""
-Write-Host "Select an operation:"
-Write-Host "  [1] Launch Interactive Simulation (Gazebo GUI + RViz)" -ForegroundColor Green
-Write-Host "  [2] Run Automated Benchmark Test (Single Platform)" -ForegroundColor Green
-Write-Host "  [3] Run Comparative Benchmarks (All 3 Platforms: SSL vs TB3 vs JetBot)" -ForegroundColor Green
-Write-Host "  [4] Launch Official RoboCup SSL Match Field" -ForegroundColor Green
-Write-Host "  [5] View Benchmark Results (CSV Summaries)" -ForegroundColor Green
-Write-Host "  [6] Open Interactive Terminal Inside Container" -ForegroundColor Green
-Write-Host "  [7] Stop All Simulation Services and Clean Up" -ForegroundColor Green
-Write-Host "  [q] Quit" -ForegroundColor Red
-Write-Host ""
+    [Parameter(Position=1)]
+    [ValidateSet("ssl_robot", "turtlebot3_burger", "jetbot", "all")]
+    [string]$Robot = "all",
 
-$mainChoice = Read-Host "Enter choice [1-7 or q] (default: 1)"
-if ([string]::IsNullOrWhiteSpace($mainChoice)) { $mainChoice = "1" }
+    [Parameter(Position=2)]
+    [ValidateSet("straight_line", "circular_arc", "m_shape", "all")]
+    [string]$Scenario = "all",
 
-if ($mainChoice -match "^[qQ]$") {
-    Write-Host "Exiting."
-    exit 0
-}
+    [Parameter(Position=3)]
+    [int]$Trials = 1,
 
-function Select-RobotModel {
+    [Parameter(Position=4)]
+    [switch]$Gui
+)
+
+function Show-Help {
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host " RoboCup SSL Simulation & Benchmarking CLI (PowerShell)" -ForegroundColor Cyan
+    Write-Host "====================================================" -ForegroundColor Cyan
+    Write-Host "Commands:"
+    Write-Host "  run_all [trials]                      - Run ALL robots back-to-back across ALL tests with 3D GUI"
+    Write-Host "  record_all [trials]                   - Alias for run_all (ready for video screen recording)"
+    Write-Host "  sim [robot] [scenario]                - Launch Gazebo simulation with visual 3D GUI"
+    Write-Host "  benchmark [robot] [scenario] [-Gui]   - Run single trajectory tracking benchmark"
+    Write-Host "  batch [robot] [scenario] [trials][-Gui]- Run repeated batch trials back-to-back"
+    Write-Host "  speed_test [robot] [-Gui]             - Run unconstrained straight-line top speed test"
+    Write-Host "  speed_test_all [-Gui]                 - Test top speed across all 3 platforms"
+    Write-Host "  benchmark_all [trials] [-Gui]         - Run comparative matrix across all robots & scenarios"
+    Write-Host "  summary                               - Display statistical summary table (Mean ± SD)"
+    Write-Host "  build                                 - Rebuild colcon packages inside container"
+    Write-Host "  shell                                 - Open interactive bash shell inside container"
     Write-Host ""
-    Write-Host "Select Robot Platform:" -ForegroundColor Yellow
-    Write-Host "  [1] Custom SSL Differential Robot (Standard)"
-    Write-Host "  [2] TurtleBot3 Burger (Commercial Baseline 1)"
-    Write-Host "  [3] NVIDIA JetBot (Commercial Baseline 2)"
-    $robotChoice = Read-Host "Enter choice [1-3] (default: 1)"
-    switch ($robotChoice) {
-        "2" { return "turtlebot3_burger" }
-        "3" { return "jetbot" }
-        default { return "ssl_robot" }
-    }
-}
-
-function Select-Scenario {
+    Write-Host "Options:"
+    Write-Host "  -Trials [N]                           - Repetitions per scenario (default: 1 for run_all)"
+    Write-Host "  -Gui                                  - Open the 3D Gazebo GUI in browser (noVNC)"
     Write-Host ""
-    Write-Host "Select Evaluation Scenario:" -ForegroundColor Yellow
-    Write-Host "  [1] Straight-Line 5m Sprint & Halt"
-    Write-Host "  [2] Circular Arc (Steady-State Radius R=1.0m)"
-    Write-Host "  [3] M-Shape Path (Transient Cornering)"
-    $scenarioChoice = Read-Host "Enter choice [1-3] (default: 1)"
-    switch ($scenarioChoice) {
-        "2" { return "circular_arc" }
-        "3" { return "m_shape" }
-        default { return "straight_line" }
-    }
 }
 
-function Select-DisplayMode {
-    Write-Host ""
-    Write-Host "Select Display Interface:" -ForegroundColor Yellow
-    Write-Host "  [1] Native Desktop Window (WSLg / GPU Accelerated, default)"
-    Write-Host "  [2] Web Browser Interface (noVNC at http://localhost:6080/vnc.html)"
-    $dispChoice = Read-Host "Enter choice [1-2] (default: 1)"
-    switch ($dispChoice) {
-        "2" { return "novnc" }
-        default { return "auto" }
-    }
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$DockerDir = Join-Path $ScriptDir "docker"
+
+function Ensure-Docker {
+    Set-Location $DockerDir
+    docker compose up -d | Out-Null
+    Set-Location $ScriptDir
 }
 
-$researchDirWsl = "/mnt/d/'Wits work'/honors/'Research methods intro'/Research"
+function Open-Browser-Viewer {
+    Write-Host "--> Opening 3D simulation viewer in your browser at http://localhost:6080/vnc.html" -ForegroundColor Cyan
+    Write-Host "    (Click 'Connect' in the browser window to see the 3D Gazebo arena)" -ForegroundColor Yellow
+    Start-Process "http://localhost:6080/vnc.html"
+}
 
-switch ($mainChoice) {
-    "1" {
-        $robot = Select-RobotModel
-        $scenario = Select-Scenario
-        $display = Select-DisplayMode
-        Write-Host "`nStarting visual simulation for [$robot] on [$scenario] in mode [$display]..." -ForegroundColor Cyan
-        wsl -e bash -c "cd $researchDirWsl && export ROBOT_MODEL=$robot && export SCENARIO=$scenario && export SIM_DISPLAY_MODE=$display && ./scripts/run_sim.sh"
-    }
-    "2" {
-        $robot = Select-RobotModel
-        $scenario = Select-Scenario
-        Write-Host "`nEnable Gazebo GUI during test?" -ForegroundColor Yellow
-        Write-Host "  [1] No (Headless fast execution, default)"
-        Write-Host "  [2] Yes (Show visual simulation)"
-        $guiChoice = Read-Host "Enter choice [1-2] (default: 1)"
-        $gui = if ($guiChoice -eq "2") { "true" } else { "false" }
+$GuiFlag = if ($Gui) { "export GUI=true;" } else { "export GUI=false;" }
 
-        Write-Host "`nExecuting Benchmark: $robot on $scenario..." -ForegroundColor Cyan
-        wsl -e bash -c "cd $researchDirWsl && export ROBOT_MODEL=$robot && export SCENARIO=$scenario && ./scripts/run_benchmarks.sh"
+switch ($Command) {
+    "run_all" {
+        Ensure-Docker
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host " Starting Full Multi-Robot Visual Benchmark Suite" -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host "Robots:    ssl_robot -> turtlebot3_burger -> jetbot" -ForegroundColor White
+        Write-Host "Scenarios: straight_line -> circular_arc -> m_shape -> speed_test" -ForegroundColor White
+        Write-Host "Trials:    $Trials repetition(s) per test" -ForegroundColor White
+        Write-Host ""
+        Open-Browser-Viewer
+        Write-Host "Ready to record! Click 'Connect' in your browser and start your screen recorder." -ForegroundColor Yellow
+        Write-Host "Starting automated test sequence in 6 seconds..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 6
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh run_all $Trials"
+        Set-Location $ScriptDir
     }
-    "3" {
-        $scenario = Select-Scenario
-        Write-Host "`nRunning 3-Platform Comparative Suite on scenario: $scenario..." -ForegroundColor Cyan
-        wsl -e bash -c "cd $researchDirWsl && ./scripts/run_comparative_benchmarks.sh $scenario"
+    "record_all" {
+        Ensure-Docker
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host " Starting Full Multi-Robot Visual Benchmark Suite" -ForegroundColor Cyan
+        Write-Host "====================================================" -ForegroundColor Cyan
+        Write-Host "Robots:    ssl_robot -> turtlebot3_burger -> jetbot" -ForegroundColor White
+        Write-Host "Scenarios: straight_line -> circular_arc -> m_shape -> speed_test" -ForegroundColor White
+        Write-Host "Trials:    $Trials repetition(s) per test" -ForegroundColor White
+        Write-Host ""
+        Open-Browser-Viewer
+        Write-Host "Ready to record! Click 'Connect' in your browser and start your screen recorder." -ForegroundColor Yellow
+        Write-Host "Starting automated test sequence in 6 seconds..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 6
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh run_all $Trials"
+        Set-Location $ScriptDir
     }
-    "4" {
-        Write-Host "`nLaunching Official RoboCup SSL Match Field..." -ForegroundColor Cyan
-        wsl -e bash -c "cd $researchDirWsl && make field"
+    "build" {
+        Ensure-Docker
+        Write-Host "Building ROS 2 workspace packages inside container..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --symlink-install --packages-select ssl_robot_benchmarking ssl_robot_control ssl_robot_description ssl_robot_gazebo"
+        Set-Location $ScriptDir
     }
-    "5" {
-        $csvPath = Join-Path $PSScriptRoot "benchmark_results\benchmark_comparative_master.csv"
-        if (Test-Path $csvPath) {
-            Write-Host "`nRecent Comparative Benchmark Log:" -ForegroundColor Green
-            Write-Host "Path: $csvPath`n" -ForegroundColor DarkGray
-            Import-Csv $csvPath | Format-Table -AutoSize
-        } else {
-            Write-Host "`nNo benchmark results found yet. Run an evaluation from option [2] or [3]." -ForegroundColor Yellow
+    "sim" {
+        Ensure-Docker
+        Write-Host "Launching Gazebo simulation with visual 3D GUI for $Robot ($Scenario)..." -ForegroundColor Green
+        Open-Browser-Viewer
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && pkill -9 -f 'gz' 2>/dev/null || true; sleep 1; ros2 launch ssl_robot_gazebo sim.launch.py robot_model:=$Robot scenario:=$Scenario gui:=true rviz:=false"
+        Set-Location $ScriptDir
+    }
+    "benchmark" {
+        Ensure-Docker
+        if ($Gui) { Open-Browser-Viewer }
+        $guiText = if ($Gui) { "with 3D GUI" } else { "headless" }
+        Write-Host "Running benchmarking trial for $Robot ($Scenario) [$guiText]..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "$GuiFlag source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh benchmark $Robot $Scenario"
+        Set-Location $ScriptDir
+    }
+    "batch" {
+        Ensure-Docker
+        if ($Gui) { Open-Browser-Viewer }
+        $guiText = if ($Gui) { "with 3D GUI" } else { "headless" }
+        Write-Host "Executing batch simulation suite for $Robot on $Scenario ($Trials iterations, $guiText)..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "$GuiFlag source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh batch $Robot $Scenario $Trials"
+        Set-Location $ScriptDir
+    }
+    "speed_test" {
+        Ensure-Docker
+        if ($Gui) { 
+            Open-Browser-Viewer 
+            Write-Host "Waiting 5 seconds for 3D simulation viewer to connect..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
         }
+        $guiText = if ($Gui) { "with 3D GUI" } else { "headless" }
+        Write-Host "Running unconstrained straight-line speed test for $Robot [$guiText]..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "$GuiFlag source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh speed_test $Robot"
+        Set-Location $ScriptDir
     }
-    "6" {
-        Write-Host "`nOpening interactive terminal in container..." -ForegroundColor Cyan
-        wsl -e bash -c "cd $researchDirWsl && ./scripts/shell.sh"
+    "speed_test_all" {
+        Ensure-Docker
+        if ($Gui) { 
+            Open-Browser-Viewer 
+            Write-Host "Waiting 5 seconds for 3D simulation viewer to connect..." -ForegroundColor Yellow
+            Start-Sleep -Seconds 5
+        }
+        $guiText = if ($Gui) { "with 3D GUI" } else { "headless" }
+        Write-Host "Running unconstrained straight-line speed tests across all platforms [$guiText]..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "$GuiFlag source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh speed_test_all"
+        Set-Location $ScriptDir
     }
-    "7" {
-        Write-Host "`nStopping all container services..." -ForegroundColor Yellow
-        wsl -e bash -c "cd $researchDirWsl && make down"
-        Write-Host "Containers stopped and cleaned." -ForegroundColor Green
+    "benchmark_all" {
+        Ensure-Docker
+        if ($Gui) { Open-Browser-Viewer }
+        $guiText = if ($Gui) { "with 3D GUI" } else { "headless" }
+        Write-Host "Running full comparative batch suite across all robots & scenarios ($Trials trials each, $guiText)..." -ForegroundColor Green
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "$GuiFlag source /opt/ros/humble/setup.bash && [ -f /ros2_ws/install/setup.bash ] && source /ros2_ws/install/setup.bash && /ros2_ws/scripts/sim_cli.sh batch all all $Trials"
+        Set-Location $ScriptDir
+    }
+    "summary" {
+        Ensure-Docker
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "python3 /ros2_ws/scripts/aggregate_benchmarks.py"
+        Set-Location $ScriptDir
+    }
+    "cleanup" {
+        Ensure-Docker
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash -c "/ros2_ws/scripts/sim_cli.sh cleanup"
+        Set-Location $ScriptDir
+    }
+    "shell" {
+        Ensure-Docker
+        Set-Location $DockerDir
+        docker compose exec ros2_sim bash
+        Set-Location $ScriptDir
     }
     default {
-        Write-Host "Invalid selection." -ForegroundColor Red
+        Show-Help
     }
 }

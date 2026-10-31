@@ -6,7 +6,7 @@ Evaluates Scenario 2: Trajectory Tracking across:
   - Circular Arc
   - M-Shape Course
 Calculates Root Mean Square Error (RMSE) path fidelity:
-  E_path = sqrt( 1/N * sum( (x_k - x_hat_k)^2 + (y_k - y_hat_k)^2 ) )
+  E_path = sqrt( 1/N * sum( min_dist_sq ) )
 """
 
 import math
@@ -45,6 +45,7 @@ class TrajectoryEvaluator(Node):
 
         self.has_published = False
         self.furthest_path_idx = 0
+        self._log_counter = 0
         self.completion_timer = self.create_timer(0.5, self.check_completion)
         self.metric_pub = self.create_publisher(BenchmarkMetric, '/benchmark/metrics', 10)
 
@@ -77,12 +78,22 @@ class TrajectoryEvaluator(Node):
             self.furthest_path_idx = closest_idx
 
     def check_completion(self):
-        if self.has_published or len(self.squared_errors) < 80 or not self.ref_path:
+        if self.has_published or not self.ref_path or len(self.squared_errors) < 10:
             return
 
         rx, ry = self.actual_poses[-1]
         end_x, end_y = self.ref_path[-1]
         dist_to_end = math.hypot(rx - end_x, ry - end_y)
+
+        # Periodic live progress log every ~1.5s
+        self._log_counter += 1
+        if self._log_counter % 3 == 0:
+            pct = (self.furthest_path_idx / float(len(self.ref_path))) * 100.0 if self.ref_path else 0.0
+            cur_rmse = self.calculate_rmse()
+            cur_err = math.sqrt(self.squared_errors[-1])
+            self.get_logger().info(
+                f"[{self.scenario_name}] Progress: {pct:5.1f}% | Cross-Track Err: {cur_err:.4f} m | Active RMSE: {cur_rmse:.4f} m"
+            )
 
         # Has traversed at least 85% of waypoints along the trajectory
         has_traversed = self.furthest_path_idx >= int(len(self.ref_path) * 0.85)
@@ -90,7 +101,7 @@ class TrajectoryEvaluator(Node):
         # Reached destination after traversing path
         reached_destination = has_traversed and (dist_to_end < 0.30 or self.furthest_path_idx >= len(self.ref_path) - 2)
 
-        # Generous timeout: 60s (3600 samples at 60 Hz) to allow slow baselines to complete full course
+        # Timeout after 60s
         timed_out = len(self.squared_errors) >= 3600
 
         if reached_destination or timed_out:
@@ -107,9 +118,10 @@ class TrajectoryEvaluator(Node):
             return
         rmse = self.calculate_rmse()
         self.get_logger().info("=" * 60)
-        self.get_logger().info(f"TRAJECTORY EVALUATION [{self.scenario_name}]:")
-        self.get_logger().info(f"  Sample count (N): {len(self.squared_errors)}")
+        self.get_logger().info(f"TRAJECTORY EVALUATION COMPLETE [{self.scenario_name}]:")
+        self.get_logger().info(f"  Sample count (N):   {len(self.squared_errors)}")
         self.get_logger().info(f"  Path RMSE (E_path): {rmse:.4f} meters")
+        self.get_logger().info(f"  Status:             {'PASSED (<= 0.15m)' if rmse < 0.15 else 'FAILED'}")
         self.get_logger().info("=" * 60)
 
         metric = BenchmarkMetric()

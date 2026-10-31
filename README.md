@@ -40,7 +40,8 @@ Research methods intro/
 │   │   ├── run_sim.sh                  # Interactive visual simulation launcher
 │   │   ├── run_benchmarks.sh           # Single-robot batch benchmark evaluator
 │   │   ├── run_comparative_benchmarks.sh # 3-platform comparative benchmark suite
-│   │   ├── sim_cli.sh                  # Interactive Linux/WSL Bash simulation CLI
+│   │   ├── aggregate_benchmarks.py     # Multi-trial statistical aggregator (Mean ± SD)
+│   │   ├── sim_cli.sh                  # Simulation and benchmarking Bash CLI
 │   │   └── shell.sh                    # Interactive shell inside the container
 │   ├── src/                            # ROS 2 Packages
 │   │   ├── ssl_robot_interfaces/       # Custom messages (TrajectoryProfile, BenchmarkMetric)
@@ -123,57 +124,83 @@ The simulation architecture mirrors the physical hardware design:
 
 ---
 
-## 4. Quick Start: Running the Simulation
+## 4. Quick Start: Running the Simulation & Benchmarks
+
+The simulation suite runs inside a Docker container configured with ROS 2 Humble, Gazebo 11, and noVNC for browser-based 3D visualization.
 
 ### Prerequisites
 * **Windows 10/11**: Docker Desktop running with WSL2 backend.
-* **Linux / Ubuntu**: Docker engine and Docker Compose plugin installed.
+* **Linux / Ubuntu**: Docker Engine and Docker Compose plugin installed.
 
-### Option A: Windows PowerShell Interactive CLI (Recommended)
+### Option A: Windows PowerShell CLI (Recommended)
 
-From the project root on Windows:
+From the project root on Windows, invoke `sim_cli.ps1`:
+
 ```powershell
-.\Research\sim_cli.ps1
-```
-The menu allows you to:
-1. Launch interactive Gazebo GUI + RViz (with platform and scenario selection).
-2. Run single-robot automated 10-trial benchmarks.
-3. Run the complete 3-platform comparative benchmark suite across SSL Robot, TurtleBot3, and JetBot.
-4. Launch the official RoboCup SSL match field.
-5. Display CSV summary tables directly in the terminal.
-6. Open an interactive shell inside the container.
-7. Stop all simulation services and clean up containers.
+# Run the complete multi-robot visual test sequence with 3D GUI for screen recording
+.\Research\sim_cli.ps1 run_all 3
 
-### Option B: Linux / WSL Interactive Bash CLI
+# Run repeated batch trials back-to-back
+.\Research\sim_cli.ps1 batch -Robot ssl_robot -Scenario m_shape -Trials 10
+
+# Run batch trials with live 3D visualization in your browser
+.\Research\sim_cli.ps1 batch -Robot turtlebot3_burger -Scenario circular_arc -Trials 5 -Gui
+
+# Run unconstrained straight-line top speed and peak acceleration tests
+.\Research\sim_cli.ps1 speed_test -Robot ssl_robot -Gui
+.\Research\sim_cli.ps1 speed_test_all
+
+# Launch interactive 3D Gazebo simulation
+.\Research\sim_cli.ps1 sim -Robot ssl_robot -Scenario straight_line
+
+# Display statistical summary table (N, Mean ± SD, Pass Rates)
+.\Research\sim_cli.ps1 summary
+```
+
+#### Visualizing and Recording Simulations in Browser (noVNC)
+The simulation streams 3D graphics to an internal web viewer at [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html). Specifying `-Gui` or executing `run_all` opens this URL in your default browser. Click **Connect** to view the live arena. Screen captures can be recorded using Windows Game Bar (`Win + Alt + R`) or OBS Studio via Window Capture on the browser tab. The `run_all` command includes an automated 6-second delay to allow focusing the browser and starting video capture.
+
+### Option B: Linux / WSL Bash CLI
 
 From the `Research/` directory:
 ```bash
-cd Research
-make cli
-```
-Or directly:
-```bash
-./scripts/sim_cli.sh
-```
+# Visual recording sequence
+./scripts/sim_cli.sh run_all 3
 
+# Batch testing
+./scripts/sim_cli.sh batch ssl_robot m_shape 10
+
+# Unconstrained speed testing
+./scripts/sim_cli.sh speed_test ssl_robot
+./scripts/sim_cli.sh speed_test_all
+
+# Trajectory benchmark
+./scripts/sim_cli.sh benchmark jetbot circular_arc
+
+# Statistical summary table
+./scripts/sim_cli.sh summary
+```
 
 ---
 
 ## 5. Benchmarking Protocols & Scenarios
 
-The automated evaluation suite tests three path geometries:
+The automated evaluation suite assesses four benchmark protocols:
 
 1. **Straight-Line Sprint & Halt (`straight_line`)**:
-   * Evaluates top acceleration, steady-state velocity, and braking compliance with the SSL 2.0-second halting rule ($t_{\text{stop}} \le 2.0\text{ s}$).
+   * Evaluates acceleration, terminal velocity, and braking compliance under LTV-MPC guidance against the SSL 2.0-second halting rule ($t_{\text{stop}} \le 2.0\text{ s}$).
 2. **Circular Arc Tracking (`circular_arc`)**:
-   * Assesses steady-state centrifugal tracking accuracy and lateral drift under continuous curvature ($R = 1.0\text{ m}$).
+   * Evaluates steady-state centrifugal tracking accuracy and lateral drift under continuous curvature ($R = 1.0\text{ m}$).
 3. **M-Shape Course (`m_shape`)**:
    * Stresses transient response across sharp yaw transitions and acute waypoint changes.
+4. **Unconstrained Straight-Line Sprint (`speed_test`)**:
+   * Evaluates physical platform acceleration and terminal velocity over 5.0 meters with maximum motor torque without MPC velocity saturation.
 
 ### Benchmark Output Files
-Evaluation logs and aggregated metrics are saved to `Research/benchmark_results/`:
-* `benchmark_metrics_summary.csv`: Single-run metrics containing $v_{\text{max}}$, $t_{\text{stop}}$, $d_{\text{stop}}$, latency, and path RMSE ($E_{\text{path}}$).
-* `benchmark_comparative_master.csv`: Multi-robot comparative log recording mean ($\mu$) and standard deviation ($\sigma_x$) across 10-trial sequences.
+Evaluation logs and statistical summaries are stored in `Research/benchmark_results/`:
+* `benchmark_comparative_master.csv`: Comprehensive log capturing individual trial outcomes including $v_{\text{max}}$, $t_{\text{stop}}$, $d_{\text{stop}}$, path RMSE, run duration, and pass status.
+* `benchmark_statistical_summary.csv`: Aggregated summary table reporting sample size ($N$), $\text{Mean} \pm \text{SD}$ for key metrics, and pass percentages.
+* `benchmark_summary_table.csv`: Cross-platform comparison table for research reporting.
 
 ---
 

@@ -1,179 +1,260 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+# sim_cli.sh - Simulation and Benchmarking CLI
 
-# Terminal colors
-BOLD="\033[1m"
-GREEN="\033[0;32m"
-BLUE="\033[0;34m"
-YELLOW="\033[1;33m"
-CYAN="\033[0;36m"
-RED="\033[0;31m"
-NC="\033[0m"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
-clear
-echo -e "${CYAN}${BOLD}===============================================================${NC}"
-echo -e "${CYAN}${BOLD}  RoboCup SSL Research Simulation Control Hub${NC}"
-echo -e "${CYAN}${BOLD}===============================================================${NC}"
-echo -e "Interactive CLI for simulation, baseline benchmarking, and analysis."
-echo ""
-echo -e "${BOLD}Select an operation:${NC}"
-echo -e "  ${GREEN}[1]${NC} Launch Interactive Simulation (Gazebo GUI + RViz)"
-echo -e "  ${GREEN}[2]${NC} Run Automated Benchmark Test (Single Platform)"
-echo -e "  ${GREEN}[3]${NC} Run Comparative Benchmarks (All 3 Platforms: SSL vs TB3 vs JetBot)"
-echo -e "  ${GREEN}[4]${NC} Launch Official RoboCup SSL Match Field"
-echo -e "  ${GREEN}[5]${NC} View Benchmark Results (CSV Summaries)"
-echo -e "  ${GREEN}[6]${NC} Open Interactive Terminal Inside Container"
-echo -e "  ${GREEN}[7]${NC} Stop All Simulation Services and Clean Up"
-echo -e "  ${RED}[q]${NC} Quit"
-echo ""
-
-read -rp "Enter choice [1-7 or q] (default: 1): " MAIN_CHOICE
-MAIN_CHOICE="${MAIN_CHOICE:-1}"
-
-if [[ "$MAIN_CHOICE" =~ ^[qQ]$ ]]; then
-    echo "Exiting."
-    exit 0
+# 1. Source Base ROS 2 distribution if not already active
+if ! command -v ros2 &> /dev/null; then
+    for distro in humble rolling iron galactic foxy; do
+        if [ -f "/opt/ros/$distro/setup.bash" ]; then
+            source "/opt/ros/$distro/setup.bash"
+            break
+        fi
+    done
 fi
 
-select_robot_model() {
-    echo ""
-    echo -e "${BOLD}Select Robot Platform:${NC}"
-    echo -e "  ${CYAN}[1]${NC} Custom SSL Differential Robot (Standard)"
-    echo -e "  ${CYAN}[2]${NC} TurtleBot3 Burger (Commercial Baseline 1)"
-    echo -e "  ${CYAN}[3]${NC} NVIDIA JetBot (Commercial Baseline 2)"
-    read -rp "Enter choice [1-3] (default: 1): " ROBOT_CHOICE
-    case "${ROBOT_CHOICE:-1}" in
-        2) SELECTED_ROBOT="turtlebot3_burger" ;;
-        3) SELECTED_ROBOT="jetbot" ;;
-        *) SELECTED_ROBOT="ssl_robot" ;;
-    esac
-    echo -e "Selected model: ${GREEN}${SELECTED_ROBOT}${NC}"
+# 2. Source Workspace Underlay/Overlay safely
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [ -f "$WORKSPACE_DIR/install/setup.bash" ]; then
+    source "$WORKSPACE_DIR/install/setup.bash"
+fi
+
+ROBOT="${2:-ssl_robot}"
+SCENARIO="${3:-straight_line}"
+TRIALS="${4:-1}"
+GUI="${GUI:-false}"
+
+cleanup_all() {
+    pkill -9 -f "gzserver|gzclient" 2>/dev/null || true
+    pkill -9 -f "robot_state_publisher|rviz2" 2>/dev/null || true
+    pkill -9 -f "ros2 launch" 2>/dev/null || true
+    pkill -9 -f "ros2 run" 2>/dev/null || true
+    pkill -9 -f "ros2 topic" 2>/dev/null || true
+    pkill -9 -f "sprint_halt_evaluator" 2>/dev/null || true
+    pkill -9 -f "trajectory_evaluator" 2>/dev/null || true
+    pkill -9 -f "trial_orchestrator" 2>/dev/null || true
+    pkill -9 -f "ltv_mpc_planner" 2>/dev/null || true
+    pkill -9 -f "simulated_pico_firmware" 2>/dev/null || true
+    pkill -9 -f "overhead_tracking_node" 2>/dev/null || true
+    sleep 1
 }
 
-select_scenario() {
+show_help() {
+    echo "Usage: ./scripts/sim_cli.sh [command] [robot_model] [scenario] [trials]"
     echo ""
-    echo -e "${BOLD}Select Evaluation Scenario:${NC}"
-    echo -e "  ${CYAN}[1]${NC} Straight-Line 5m Sprint & Halt"
-    echo -e "  ${CYAN}[2]${NC} Circular Arc (Steady-State Radius R=1.0m)"
-    echo -e "  ${CYAN}[3]${NC} M-Shape Path (Transient Cornering)"
-    read -rp "Enter choice [1-3] (default: 1): " SCENARIO_CHOICE
-    case "${SCENARIO_CHOICE:-1}" in
-        2) SELECTED_SCENARIO="circular_arc" ;;
-        3) SELECTED_SCENARIO="m_shape" ;;
-        *) SELECTED_SCENARIO="straight_line" ;;
-    esac
-    echo -e "Selected scenario: ${GREEN}${SELECTED_SCENARIO}${NC}"
+    echo "Commands:"
+    echo "  build                                 Build the ROS 2 workspace packages"
+    echo "  sim [robot] [scenario]                Launch Gazebo simulation testbed (interactive GUI)"
+    echo "  benchmark [robot] [scenario]          Run single trajectory tracking benchmark"
+    echo "  batch [robot] [scenario] [trials]     Run repeated batch trials back-to-back"
+    echo "  speed_test [robot]                    Run unconstrained top speed & peak acceleration test"
+    echo "  speed_test_all                        Run speed test on all 3 platforms"
+    echo "  benchmark_all                         Run benchmarks across all 3 platforms"
+    echo "  run_all [trials]                      Run all robots back-to-back across all tests with 3D GUI"
+    echo "  summary                               Display statistical summary of all recorded trials"
+    echo ""
+    echo "Robots:     ssl_robot | turtlebot3_burger | jetbot | all"
+    echo "Scenarios:  straight_line | circular_arc | m_shape | all"
 }
 
-select_display_mode() {
-    echo ""
-    echo -e "${BOLD}Select Display Interface:${NC}"
-    echo -e "  ${CYAN}[1]${NC} Native Desktop Window (WSLg / GPU Accelerated, default)"
-    echo -e "  ${CYAN}[2]${NC} Web Browser Interface (noVNC at http://localhost:6080/vnc.html)"
-    read -rp "Enter choice [1-2] (default: 1): " DISP_CHOICE
-    case "${DISP_CHOICE:-1}" in
-        2) SELECTED_DISPLAY="novnc" ;;
-        *) SELECTED_DISPLAY="auto" ;;
-    esac
+run_speed_test() {
+    local target_robot="$1"
+    echo "============================================================"
+    echo " Starting Straight-Line Speed & Acceleration Test: $target_robot (GUI: $GUI)"
+    echo "============================================================"
+    
+    cleanup_all
+
+    # Launch simulation in background without trajectory controller
+    ros2 launch ssl_robot_gazebo sim.launch.py \
+        robot_model:="$target_robot" \
+        start_control:=false \
+        gui:="$GUI" &
+    SIM_PID=$!
+
+    echo "Waiting for Gazebo simulation environment to initialize..."
+    for i in {1..30}; do
+        if ros2 topic list 2>/dev/null | grep -q "/odom"; then
+            echo "Simulation is ready. Starting speed evaluator..."
+            break
+        fi
+        sleep 1
+    done
+
+    # If GUI is requested, pause briefly so the browser viewer is fully connected before motion starts
+    if [ "$GUI" = "true" ]; then
+        echo "GUI active: pausing 4 seconds for display stabilization..."
+        sleep 4
+    fi
+
+    # Run the sprint evaluator in unconstrained mode over 5m
+    ros2 run ssl_robot_benchmarking sprint_halt_evaluator \
+        --ros-args \
+        -p unconstrained:=true \
+        -p sprint_distance:=5.0 \
+        -p robot_model:="$target_robot"
+
+    kill -SIGINT $SIM_PID 2>/dev/null || true
+    sleep 1
+    kill -9 $SIM_PID 2>/dev/null || true
+    cleanup_all
+    echo "Speed test completed for $target_robot. Results logged to benchmark_results/."
 }
 
-case "$MAIN_CHOICE" in
-    1)
-        select_robot_model
-        select_scenario
-        select_display_mode
+run_single_trial() {
+    local r="$1"
+    local s="$2"
+    local trial_num="$3"
+    local total="$4"
+    echo ""
+    echo "------------------------------------------------------------"
+    echo " [Trial $trial_num / $total] Robot: $r | Scenario: $s (GUI: $GUI)"
+    echo "------------------------------------------------------------"
+    cleanup_all
+    ros2 launch ssl_robot_benchmarking run_all_benchmarks.launch.py \
+        robot_model:="$r" \
+        scenario:="$s" \
+        gui:="$GUI" \
+        total_trials:=1
+    cleanup_all
+}
+
+run_batch() {
+    local target_robot="$1"
+    local target_scenario="$2"
+    local n_trials="${3:-5}"
+
+    local robots=()
+    if [ "$target_robot" = "all" ]; then
+        robots=("ssl_robot" "turtlebot3_burger" "jetbot")
+    else
+        robots=("$target_robot")
+    fi
+
+    local scenarios=()
+    if [ "$target_scenario" = "all" ]; then
+        scenarios=("straight_line" "circular_arc" "m_shape")
+    else
+        scenarios=("$target_scenario")
+    fi
+
+    echo "============================================================"
+    echo " Starting Batch Simulation Suite ($n_trials iterations per condition, GUI: $GUI)"
+    echo " Robots:    ${robots[*]}"
+    echo " Scenarios: ${scenarios[*]}"
+    echo "============================================================"
+
+    for r in "${robots[@]}"; do
+        for s in "${scenarios[@]}"; do
+            for (( i=1; i<=n_trials; i++ )); do
+                run_single_trial "$r" "$s" "$i" "$n_trials"
+            done
+        done
+    done
+
+    echo ""
+    echo "Batch run completed. Aggregating results..."
+    python3 "$WORKSPACE_DIR/scripts/aggregate_benchmarks.py"
+}
+
+run_visual_suite() {
+    local n_trials="${1:-1}"
+    export GUI=true
+
+    echo "============================================================"
+    echo " FULL VISUAL DEMONSTRATION & BENCHMARK RECORDING SUITE"
+    echo " View 3D Arena Live at: http://localhost:6080/vnc.html"
+    echo " Robots:    ssl_robot -> turtlebot3_burger -> jetbot"
+    echo " Scenarios: straight_line -> circular_arc -> m_shape -> speed_test"
+    echo "============================================================"
+
+    local robots=("ssl_robot" "turtlebot3_burger" "jetbot")
+    local scenarios=("straight_line" "circular_arc" "m_shape")
+
+    for r in "${robots[@]}"; do
         echo ""
-        echo -e "${BLUE}${BOLD}Starting simulation for [${SELECTED_ROBOT}] on [${SELECTED_SCENARIO}]...${NC}"
-        export ROBOT_MODEL="$SELECTED_ROBOT"
-        export SCENARIO="$SELECTED_SCENARIO"
-        export SIM_DISPLAY_MODE="$SELECTED_DISPLAY"
-        "${SCRIPT_DIR}/run_sim.sh"
+        echo "############################################################"
+        echo " >>> NOW TESTING ROBOT: $r"
+        echo "############################################################"
+
+        for s in "${scenarios[@]}"; do
+            for (( i=1; i<=n_trials; i++ )); do
+                echo ""
+                echo "------------------------------------------------------------"
+                echo " [VISUAL 3D] Robot: $r | Scenario: $s (Trial $i/$n_trials)"
+                echo "------------------------------------------------------------"
+                cleanup_all
+                ros2 launch ssl_robot_benchmarking run_all_benchmarks.launch.py \
+                    robot_model:="$r" \
+                    scenario:="$s" \
+                    gui:=true \
+                    total_trials:=1
+                cleanup_all
+                sleep 2
+            done
+        done
+
+        # Run unconstrained sprint test for this robot
+        echo ""
+        echo "------------------------------------------------------------"
+        echo " [VISUAL 3D] Robot: $r | Test: Straight-Line Speed & Halt"
+        echo "------------------------------------------------------------"
+        run_speed_test "$r"
+        sleep 2
+    done
+
+    echo ""
+    echo "============================================================"
+    echo " All visual test sequences complete! Compiling results..."
+    echo "============================================================"
+    python3 "$WORKSPACE_DIR/scripts/aggregate_benchmarks.py"
+}
+
+case "$1" in
+    build)
+        cd "$WORKSPACE_DIR"
+        colcon build --symlink-install --packages-select ssl_robot_benchmarking ssl_robot_control ssl_robot_description ssl_robot_gazebo
         ;;
-
-    2)
-        select_robot_model
-        select_scenario
-        echo ""
-        echo -e "${BOLD}Enable Gazebo GUI during test?${NC}"
-        echo -e "  ${CYAN}[1]${NC} No (Headless fast execution, default)"
-        echo -e "  ${CYAN}[2]${NC} Yes (Show visual simulation)"
-        read -rp "Enter choice [1-2] (default: 1): " GUI_CHOICE
-        case "${GUI_CHOICE:-1}" in
-            2) SHOW_GUI="true" ;;
-            *) SHOW_GUI="false" ;;
-        esac
-
-        echo ""
-        echo -e "${BLUE}${BOLD}Executing Benchmark: ${SELECTED_ROBOT} on ${SELECTED_SCENARIO}...${NC}"
-        cd "${ROOT_DIR}/docker"
-        docker compose up -d
-        docker compose exec ros2_sim bash -c "
-            source /opt/ros/humble/setup.bash
-            if [ -f /ros2_ws/install/setup.bash ]; then
-                source /ros2_ws/install/setup.bash
-            fi
-            ros2 launch ssl_robot_benchmarking run_all_benchmarks.launch.py \
-                robot_model:=${SELECTED_ROBOT} \
-                scenario:=${SELECTED_SCENARIO} \
-                gui:=${SHOW_GUI} \
-                total_trials:=1
-        "
-        echo ""
-        echo -e "${GREEN}${BOLD}Benchmark complete. Results updated in benchmark_results/${NC}"
+    sim)
+        cleanup_all
+        ros2 launch ssl_robot_gazebo sim.launch.py robot_model:="$ROBOT" scenario:="${SCENARIO:-straight_line}" gui:=true
         ;;
-
-    3)
-        select_scenario
-        echo ""
-        echo -e "${BLUE}${BOLD}Running 3-Platform Comparative Suite on scenario: ${SELECTED_SCENARIO}...${NC}"
-        "${SCRIPT_DIR}/run_comparative_benchmarks.sh" "$SELECTED_SCENARIO"
-        ;;
-
-    4)
-        echo ""
-        echo -e "${BLUE}${BOLD}Launching Official RoboCup SSL Match Field...${NC}"
-        cd "${ROOT_DIR}/docker"
-        docker compose up -d
-        docker compose exec ros2_sim bash -c "
-            source /opt/ros/humble/setup.bash
-            source /ros2_ws/install/setup.bash
-            ros2 launch ssl_robot_gazebo ssl_field.launch.py
-        "
-        ;;
-
-    5)
-        echo ""
-        echo -e "${BOLD}Recent Benchmark Results:${NC}"
-        MASTER_CSV="${ROOT_DIR}/benchmark_results/benchmark_comparative_master.csv"
-        if [ -f "$MASTER_CSV" ]; then
-            echo -e "${CYAN}File: ${MASTER_CSV}${NC}"
-            echo "---------------------------------------------------------------"
-            cat "$MASTER_CSV"
-            echo "---------------------------------------------------------------"
+    benchmark)
+        cleanup_all
+        if [ "$SCENARIO" = "all" ]; then
+            for s in straight_line circular_arc m_shape; do
+                echo "Running benchmark for $ROBOT on scenario: $s (GUI: $GUI)"
+                cleanup_all
+                ros2 launch ssl_robot_benchmarking run_all_benchmarks.launch.py robot_model:="$ROBOT" scenario:="$s" gui:="$GUI"
+            done
         else
-            echo "No benchmark results found yet. Run an evaluation from option [2] or [3]."
+            ros2 launch ssl_robot_benchmarking run_all_benchmarks.launch.py robot_model:="$ROBOT" scenario:="$SCENARIO" gui:="$GUI"
         fi
         ;;
-
-    6)
-        echo ""
-        echo -e "${BLUE}${BOLD}Opening bash terminal in container...${NC}"
-        "${SCRIPT_DIR}/shell.sh"
+    batch)
+        run_batch "$ROBOT" "$SCENARIO" "$TRIALS"
         ;;
-
-    7)
-        echo ""
-        echo -e "${YELLOW}${BOLD}Stopping all container services...${NC}"
-        cd "${ROOT_DIR}/docker"
-        docker compose down
-        echo -e "${GREEN}Containers stopped and cleaned.${NC}"
+    speed_test)
+        run_speed_test "$ROBOT"
         ;;
-
+    speed_test_all)
+        for r in ssl_robot turtlebot3_burger jetbot; do
+            run_speed_test "$r"
+        done
+        ;;
+    benchmark_all)
+        run_batch "all" "all" "${TRIALS:-3}"
+        ;;
+    run_all|record_all)
+        run_visual_suite "${2:-1}"
+        ;;
+    summary)
+        python3 "$WORKSPACE_DIR/scripts/aggregate_benchmarks.py"
+        ;;
+    cleanup)
+        cleanup_all
+        echo "Cleaned up all simulation processes."
+        ;;
     *)
-        echo -e "${RED}Invalid selection. Exiting.${NC}"
-        exit 1
+        show_help
         ;;
 esac

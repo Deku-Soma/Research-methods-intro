@@ -135,6 +135,14 @@ def generate_launch_description():
         robot_state_publisher,
         spawn_robot,
         rviz,
-        control_launch
+        control_launch,
+        Node(
+            package='ssl_robot_benchmarking',
+            executable='trajectory_evaluator',
+            name='trajectory_evaluator',
+            output='screen',
+            parameters=[{'scenario_name': scenario}],
+            condition=IfCondition(start_control)
+        )
     ])
 
