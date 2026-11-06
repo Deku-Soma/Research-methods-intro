@@ -1,6 +1,6 @@
 # RoboCup SSL Honours Report: Project To-Do List
 
-## Phase 1: Supervisor Feedback (Must-Fix) — Status: COMPLETED
+## Phase 1: Supervisor Feedback (Must-Fix) - Status: COMPLETED
 - [x] **Reframe as a Simulation-Based Feasibility Study**
   - [x] Retitle document to *Bridging the Cost Barrier: A Simulation-Based Feasibility Study of a 3D-Printed ROS 2 Platform for RoboCup SSL Benchmarking* in `thesis.tex`.
   - [x] Remove and reword all physical claims in Abstract, §1.1, §3.4, §5.4, §6.1, §6.2, and §6.3.
@@ -20,7 +20,7 @@
 
 ---
 
-## Phase 2: Supervisor Feedback (Should-Fix) — Status: PARTIALLY COMPLETED
+## Phase 2: Supervisor Feedback (Should-Fix) - Status: COMPLETED
 
 ### Completed:
 - [x] **Simulation Validity & Model Parameters Table**
@@ -32,32 +32,37 @@
   - [x] Standardized the MPC rate to 20 Hz ($\Delta t = 50\text{ ms}$) across all chapters.
   - [x] Documented cost matrices ($\mathbf{Q}, \mathbf{R}, \mathbf{Q}_N$), low-level discrete PID gains ($K_p = 1.85, K_i = 0.42, K_d = 0.015$).
   - [x] Added mathematical justification for $N = 5$ (0.25 s / 37.5 cm lookahead) with an $N \in \{5, 10, 20\}$ comparison and added the repository citation.
+- [x] **Unconstrained Top Speed & Peak Acceleration Benchmarking (H1b)**
+  - [x] Implemented unconstrained sprint test evaluator (`sprint_halt_evaluator.py`) with active proportional heading hold and acceleration ramping ($3.0\text{ m/s}^2$).
+  - [x] Executed empirical tests across all three platforms: custom SSL platform reached $2.001\text{ m/s}$ ($t_{\text{stop}} = 0.434\text{ s}$, $d_{\text{stop}} = 0.571\text{ m}$), TurtleBot3 reached $0.300\text{ m/s}$ ($t_{\text{stop}} = 0.137\text{ s}$), and JetBot reached $0.501\text{ m/s}$ ($t_{\text{stop}} = 0.190\text{ s}$).
+  - [x] Logged empirical velocity profiles directly into `benchmark_comparative_master.csv`.
+- [x] **Multi-Trial Batch Evaluation & Statistical Uncertainty**
+  - [x] Automated batch simulation execution (`.\sim_cli.ps1 batch` and `benchmark_all`) with live cross-track RMSE and stopping telemetry.
+  - [x] Built automated statistical aggregator (`aggregate_benchmarks.py` / `.\sim_cli.ps1 summary`) generating sample statistics ($N$, $\text{Mean} \pm \text{SD}$, and pass rates) in `benchmark_statistical_summary.csv`.
+- [x] **Visual 3D Simulation Streaming & Recording**
+  - [x] Configured noVNC web streaming on port 6080 (`http://localhost:6080/vnc.html`) with framed camera pose $(2.5, -6.0, 4.0)$ centered on the sprint lane.
+  - [x] Added `run_all` / `record_all` visual suites with automated recording delays and process lifecycle management (`pkill` process cleanup).
 
-### Pending / Remaining Decisions:
-- [ ] **Unconstrained Top Speed & Peak Acceleration Benchmarking (Optional / Pending Decision)**
-  - *Objective:* Provide empirical simulation backing for Hypothesis 1b by removing the software $1.5\text{ m/s}$ velocity constraint.
-  - *Pending Action:* Run an unconstrained sprint trial in Gazebo across all three platforms (Custom SSL, TurtleBot3 Burger, NVIDIA JetBot) using full actuator effort to record the simulated terminal velocity and peak acceleration derived from motor datasheet torque-speed curves and contact friction.
-- [ ] **Table 5.1 Uncertainty & Repetitions (Optional / Pending Decision)**
-  - *Current State:* Table 5.1 displays single-run deterministic numbers (0.0145 m, 0.0218 m, 0.0238 m).
-  - *Pending Action:* Decide whether to run batch simulations (5–10 runs per cell with injected vision noise) to report Mean $\pm$ SD with 95% Confidence Intervals, or retain the baseline deterministic table as currently contextualized.
+### Remaining Optional Decision:
 - [ ] **Per-Robot Reference Scaling for Arc (Optional / Pending Decision)**
   - *Current State:* The text explains that the TurtleBot3's large error was due to actuator saturation under the common competitive reference path.
   - *Pending Action:* Decide whether to keep this baseline comparison narrative or run a separate simulation where the reference trajectory is capped at 0.22 m/s specifically for the TurtleBot3.
 
 ---
 
-## Phase 3: Manuscript Front Matter & Formatting Polish — Status: PENDING REVIEW
-- [ ] **Acknowledgements Section (`thesis.tex`)**
-  - Add text acknowledging your supervisor (Branden Ingram), the School of Computer Science & Applied Mathematics, and any peers/family.
-- [ ] **List of Figures & List of Tables**
-  - Check Wits submission guidelines to determine if `\listoffigures` and `\listoftables` are required after `\tableofcontents`.
-- [ ] **Visual Inspection of Appendices**
-  - Inspect Appendix A (CAD renderings on page 24 of `thesis.pdf`) to ensure images are sharp and scaled properly.
-  - Inspect Appendix B (RP2040 board layout and appended declaration form on pages 25–26).
+## Phase 3: Manuscript Front Matter & Formatting Polish - Status: COMPLETED
+- [x] **Acknowledgements Section (`thesis.tex`)**
+  - Added acknowledgements recognizing supervisor Branden Ingram, the School of Computer Science & Applied Mathematics, and family/peers.
+- [x] **List of Figures & List of Tables**
+  - Added `\listoffigures` and `\listoftables` with matching roman numeral pagination and table-of-contents bookmarks.
+  - Disabled `ltablex` package conflict to ensure correct sequential numbering across tables (Table 4.1, Table 4.2, Table 5.1).
+- [x] **Visual Inspection of Appendices**
+  - Verified 3D CAD multi-view renderings in Appendix A.
+  - Verified RP2040 pinout diagram and appended postgraduate AI declaration form in Appendix B.
 
 ---
 
-## Phase 4: Final Submission & Codebase Readiness — Status: PENDING FINAL CHECK
+## Phase 4: Final Submission & Codebase Readiness - Status: PENDING FINAL CHECK
 - [ ] **GitHub Repository Readiness (`references.bib`)**
   - Ensure `https://github.com/Deku-Soma/Research-methods-intro` is public.
   - Update root `README.md` to match the simulation feasibility framing.

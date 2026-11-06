@@ -15,7 +15,7 @@
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{longtable}
-\usepackage{ltablex}
+%\usepackage{ltablex}
 \usepackage{pdfpages}
 \usepackage{siunitx}
 \usepackage{subcaption}
@@ -152,8 +152,27 @@ Date: \today
 \end{declaration}
 
 \phantomsection
+\begin{acknowledgements}
+I express my sincere gratitude to my supervisor, Branden Ingram, for his consistent guidance, technical insight, and rigorous feedback throughout this research. His constructive critiques challenged me to approach problems with greater analytical clarity and helped shape the direction of this study.
+
+I extend my appreciation to the School of Computer Science and Applied Mathematics at the University of the Witwatersrand for providing the computational resources, facilities, and academic environment that enabled this work.
+
+Finally, I thank my family and peers for their continuous encouragement and patience throughout this academic year. Their support provided the stability necessary to see this project through to completion.
+\end{acknowledgements}
+
+\phantomsection
 \addcontentsline{toc}{section}{Table of Contents}
 \tableofcontents
+\newpage
+
+\phantomsection
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\newpage
+
+\phantomsection
+\addcontentsline{toc}{section}{List of Tables}
+\listoftables
 \newpage
 
 \pagenumbering{arabic}

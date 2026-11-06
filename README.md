@@ -23,6 +23,7 @@ The project evaluates the custom 3D-printed robot against two established commer
 ```
 Research methods intro/
 ├── README.md                           # Master repository documentation (this file)
+├── system_architecture.mmd             # System architecture flowchart (Mermaid)
 ├── .gitignore                          # Clean repository ignores (LaTeX, Python, Colcon)
 │
 ├── Research/                           # ROS 2 Humble & Gazebo Simulation Environment

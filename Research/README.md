@@ -41,6 +41,7 @@ Research/
 │   ├── sim_cli.sh                  # Simulation and benchmarking CLI for Linux / WSL
 │   └── shell.sh                    # Interactive terminal inside container
 ├── sim_cli.ps1                     # Native Windows PowerShell simulation and benchmark CLI
+├── system_architecture.mmd         # System architecture flowchart (Mermaid)
 ├── Makefile                        # Quick development targets
 ├── todo.md                         # Milestone tracking and architectural review tasks
 ├── src/

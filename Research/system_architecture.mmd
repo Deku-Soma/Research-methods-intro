@@ -1,0 +1,62 @@
+flowchart TD
+    %% ==========================================================
+    %% RoboCup SSL 3D-Printed Differential-Drive System Architecture
+    %% ==========================================================
+
+    subgraph VisionSystem["1. Vision and Global Localization (60 Hz)"]
+        Cam["Overhead Tracking Camera<br/>(Global Field View)"]
+        Sigil["Chassis Top Sigil / Visual Marker<br/>(Robot ID and Heading)"]
+        P3D["Gazebo Ground Truth Plugin<br/>(libgazebo_ros_p3d with Gaussian Noise)"]
+        Cam -->|"Optical Frame Stream"| TrackNode["Overhead Tracking Node<br/>(Pose Extraction and Noise Injection)"]
+        P3D -.->|"Simulated 3D Pose"| TrackNode
+    end
+
+    subgraph HostWorkstation["2. Central Workstation (ROS 2 Humble)"]
+        TrackNode -->|"PoseStamped: x, y, theta"| TrajGen["Trajectory Generator Node<br/>(Sprint, Arc, M-Shape Profiles @ 20 Hz)"]
+        TrajGen -->|"Reference Waypoints"| LTVMPC["LTV-MPC Trajectory Planner Node<br/>(Receding Horizon N=5, OSQP Solver @ 20 Hz)"]
+        TrackNode -->|"State Feedback: x_k, y_k, theta_k"| LTVMPC
+        RefSupervisor["Referee and Safety Supervisor Node<br/>(SSL Game Controller: Halt, Stop, Normal Start)"]
+        RefSupervisor -->|"Safety Limits: v <= 1.5 m/s, Stop Decel"| LTVMPC
+    end
+
+    subgraph CommLink["3. Distributed Transport Link (micro-ROS / DDS)"]
+        LTVMPC -->|"Downlink: /pico/trajectory_horizon<br/>(Best-Effort QoS, UDP/Wi-Fi or UART)"| UROS_Agent["micro-ROS Agent<br/>(POSIX Middleware Bridge)"]
+        UROS_Client["micro-ROS Client<br/>(eProsima Client Library)"]
+        UROS_Agent <==>|"Serialized CDR Packets"| UROS_Client
+        UROS_Client -->|"Uplink: /odom and /pico/status<br/>(Telemetry and Health Feedback)"| UROS_Agent
+        UROS_Agent -->|"Odometry Feedback"| LTVMPC
+    end
+
+    subgraph RP2040["4. Embedded Microcontroller (RP2040 Dual-Core Partition)"]
+        subgraph Core0["Core 0: Communication and Horizon Buffering"]
+            UROS_Client -->|"Horizon Queue"| TrajBuffer["Trajectory Ring Buffer<br/>(Timestamp Verification and Timeout Failsafe)"]
+            StatusPub["Telemetry Publisher<br/>(Encoders and Fused Heading @ 60 Hz)"] -->|"Odometry Feed"| UROS_Client
+        end
+
+        Core0 <==>|"Hardware FIFO Mailbox and Spinlocks"| Core1
+
+        subgraph Core1["Core 1: Deterministic Real-Time Control Loop (200-500 Hz)"]
+            TrajBuffer -->|"Target Setpoints: v_target, omega_target"| DiffKin["Inverse Differential Kinematics<br/>(Target Wheel Speeds: w_L, w_R)"]
+            IMU["MPU6050 6-Axis IMU<br/>(Axle-Center Aligned)"] -->|"400 kHz DMA I2C"| CompFilter["Complementary Heading Filter<br/>(alpha = 0.98, Gyro and Accel Fusion)"]
+            CompFilter -->|"Fused Yaw theta_fused"| StatusPub
+            CompFilter -->|"Yaw Drift Correction"| PID_L["Left Wheel Discrete PID<br/>(Kp=1.85, Ki=0.42, Kd=0.015)"]
+            CompFilter -->|"Yaw Drift Correction"| PID_R["Right Wheel Discrete PID<br/>(Kp=1.85, Ki=0.42, Kd=0.015)"]
+            DiffKin -->|"w_L_target"| PID_L
+            DiffKin -->|"w_R_target"| PID_R
+            Encoders["Wheel Encoders<br/>(Quadrature Feedback via PIO)"] -->|"w_measured"| PID_L
+            Encoders -->|"w_measured"| PID_R
+            Encoders -->|"JointState / Odom"| StatusPub
+            PID_L -->|"PWM Left"| MotorDriver["DRV8833 Dual H-Bridge Driver"]
+            PID_R -->|"PWM Right"| MotorDriver
+        end
+    end
+
+    subgraph ActuationPlant["5. Physical Platform / Gazebo Simulation Plant"]
+        MotorDriver -->|"Motor Drive Signals"| DC_Motors["Spur Gear DC Motors<br/>(2.0 N.m Stall, d=50mm Wheels)"]
+        DC_Motors -->|"Rotational Torque"| Dynamics["Chassis Physics Model<br/>(m=0.435kg, b=90mm, mu=0.80, Iz=5.44e-4)"]
+        Dynamics -->|"Wheel Rotations"| Encoders
+        Dynamics -->|"Inertial Accelerations and Angular Rates"| IMU
+        Dynamics -->|"Chassis Pose and Motion"| Sigil
+        Dynamics -.->|"Ground Truth Physics State"| P3D
+    end
+
