@@ -1,171 +1,149 @@
-# RoboCup SSL Differential-Drive Research Repository
+# RoboCup SSL Differential-Drive Research Simulation (ROS 2 Humble)
 
-University of the Witwatersrand, Johannesburg  
-School of Computer Science and Applied Mathematics  
-Honours Research Project (2026)
+This directory contains the containerized ROS 2 Humble simulation workspace for evaluating a low-cost, 3D-printed differential-drive robotic platform designed for RoboCup Small Size League (SSL) Division B benchmarking.
 
 ---
 
-## 1. Research Overview
+## 1. Overview & Architecture
 
-This repository hosts the academic and computational work for investigating the viability of a low-cost, 3D-printed differential-drive robotic platform for the RoboCup Small Size League (SSL).
-
-Standard SSL platforms utilize omnidirectional drive mechanisms and custom brushless motors that cost tens of thousands of Rands per robot. This cost establishes an economic barrier to entry that excludes under-resourced universities and schools, especially within the South African context. This research assesses whether non-holonomic differential-drive kinematics, governed by a dual-loop control architecture (laptop-side Linear Time-Varying Model Predictive Control and embedded microcontroller discrete PID), can satisfy SSL operational constraints ($v \le 1.5\text{ m/s}$, $t_{\text{stop}} \le 2.0\text{ s}$).
-
-The project evaluates the custom 3D-printed robot against two established commercial differential-drive baselines:
-1. **TurtleBot3 (Burger)**: The academic research standard for indoor SLAM and navigation.
-2. **NVIDIA JetBot**: A widely deployed educational platform with open-loop DC actuators.
+The system implementation mirrors the research methodology and physical hardware specifications:
+* **Custom Robotic Platform**: 100 mm diameter $\times$ 100 mm height cylindrical chassis, dual differential-drive spur gear DC motors (50 mm wheels, 90 mm track gauge), passive ball caster, and centered MPU6050 IMU.
+* **Commercial Baseline Platforms**:
+  * **TurtleBot3 (Burger)**: 160 mm track gauge, 66 mm wheels, Dynamixel servomotors, OpenCR microcontroller.
+  * **NVIDIA JetBot**: 110 mm track gauge, 65 mm wheels, TT micro gearmotors.
+* **Dual-Loop Control Architecture**:
+  * **Central Host (Laptop)**: Runs 60 Hz overhead tracking pose receiver and high-level 20–50 Hz Linear Time-Varying Model Predictive Control (LTV-MPC) enforcing SSL constraints ($v \le 1.5\text{ m/s}$, $t_{\text{stop}} \le 2.0\text{ s}$).
+  * **Simulated Pico (RP2040 Firmware)**: Emulates the physical dual-core architecture:
+    * **Core 0**: micro-ROS subscriber caching trajectory horizons (`TrajectoryProfile.msg`).
+    * **Core 1**: High-frequency (200–500 Hz) discrete PID wheel velocity control and complementary filter heading fusion.
+* **Benchmarking Protocol**: Automated test suite evaluating straight-line 5 m sprint & halt, trajectory tracking RMSE across 3 path geometries (Straight Line, Circular Arc, M-Shape), step-response latency ($\le 16.7\text{ ms}$), and 10-trial consistency standard deviations ($\sigma_x$).
 
 ---
 
-## 2. Repository Layout
+## 2. Directory Structure
 
 ```
-Research methods intro/
-├── README.md                           # Master repository documentation (this file)
-├── system_architecture.mmd             # System architecture flowchart (Mermaid)
-├── .gitignore                          # Clean repository ignores (LaTeX, Python, Colcon)
-│
-├── Research/                           # ROS 2 Humble & Gazebo Simulation Environment
-│   ├── README.md                       # Simulation technical documentation
-│   ├── Makefile                        # Build, launch, simulation, and benchmark targets
-│   ├── sim_cli.ps1                     # Interactive Windows PowerShell simulation CLI
-│   ├── docker/                         # Multi-arch Docker setup with WSLg GPU & noVNC
-│   │   ├── Dockerfile                  # ROS 2 Humble desktop + Gazebo + OSQP/CVXPY
-│   │   ├── docker-compose.yml          # Container service definition
-│   │   ├── entrypoint.sh               # Environment sourcing
-│   │   └── start_novnc.sh              # Web GUI launcher
-│   ├── scripts/                        # Automation scripts
-│   │   ├── detect_hardware.sh          # Auto-probes GPU, WSLg, X11, or noVNC
-│   │   ├── build.sh                    # Colcon compilation script
-│   │   ├── run_sim.sh                  # Interactive visual simulation launcher
-│   │   ├── run_benchmarks.sh           # Single-robot batch benchmark evaluator
-│   │   ├── run_comparative_benchmarks.sh # 3-platform comparative benchmark suite
-│   │   ├── aggregate_benchmarks.py     # Multi-trial statistical aggregator (Mean ± SD)
-│   │   ├── sim_cli.sh                  # Simulation and benchmarking Bash CLI
-│   │   └── shell.sh                    # Interactive shell inside the container
-│   ├── src/                            # ROS 2 Packages
-│   │   ├── ssl_robot_interfaces/       # Custom messages (TrajectoryProfile, BenchmarkMetric)
-│   │   ├── ssl_robot_description/      # URDF/Xacro models (SSL Robot, TurtleBot3, JetBot)
-│   │   ├── ssl_robot_gazebo/           # Worlds (benchmark_arena.world, ssl_field.world)
-│   │   ├── ssl_robot_control/          # LTV-MPC planner, overhead tracker, Pico firmware
-│   │   └── ssl_robot_benchmarking/     # Automated evaluators (sprint, path, latency)
-│   └── todo.md                         # Research amendment and milestone tracking
-│
-├── Research proposal/                  # Research Proposal & Honours Report (LaTeX)
-│   ├── main.tex                        # Proposal source document
-│   ├── thesis.tex                      # Extended Honours report / thesis document
-│   ├── references.bib                  # BibTeX bibliography
-│   ├── makefile                        # Document compilation and clean targets
-│   ├── build.bat                       # Windows latexmk build script
-│   ├── baseline_comparison_table.md    # Kinematic & empirical comparison data
-│   └── Models/                         # OpenSCAD 3D chassis mechanical designs
-│
-├── Lit_review/                         # Literature Review Source Document (LaTeX)
-│   ├── main.tex                        # Literature review manuscript
-│   ├── references.bib                  # Domain bibliography
-│   └── makefile                        # Literature review build targets
-│
-├── Annotated_Bibliography__1_/         # Annotated Bibliography Source Document (LaTeX)
-│   ├── main.tex                        # Annotated bibliography manuscript
-│   └── references.bib                  # Core bibliography
-│
-├── research papers/                    # Reference Archive (TDPs, Control Theory, Benchmarks)
-│   ├── 2025_TDP_First-Order.pdf
-│   ├── 2024_TDP_The-Bots(low cost and 3d printed parts).pdf
-│   ├── 2023_TDP_The_A_Team.pdf
-│   ├── sslrules.pdf
-│   └── ... (20+ foundational research papers)
-│
-├── python skills/                      # Research Automation Scripts
+Research/
+├── .devcontainer/                  # VS Code Remote Container configuration
+│   └── devcontainer.json
+├── docker/                         # Docker & noVNC web interface setup
+│   ├── Dockerfile                  # ROS 2 Humble + Gazebo + scientific packages (OSQP, CVXPY)
+│   ├── docker-compose.yml          # Container configuration (ports 6080, 5901)
+│   ├── entrypoint.sh               # Environment sourcing
+│   └── start_novnc.sh              # Web-based GUI starter
+├── scripts/                        # Automation scripts
+│   ├── detect_hardware.sh          # Probes GPU, WSLg, X11, and writes compose overrides
+│   ├── build.sh                    # Compiles workspace with colcon inside container
+│   ├── run_sim.sh                  # Launches Gazebo & visual GUI
+│   ├── run_benchmarks.sh           # Runs single-platform automated evaluation
+│   ├── run_comparative_benchmarks.sh # Runs 3-platform comparative evaluation
+│   ├── aggregate_benchmarks.py     # Aggregates multi-trial statistics (Mean ± SD)
+│   ├── sim_cli.sh                  # Simulation and benchmarking CLI for Linux / WSL
+│   └── shell.sh                    # Interactive terminal inside container
+├── sim_cli.ps1                     # Native Windows PowerShell simulation and benchmark CLI
+├── system_architecture.mmd         # System architecture flowchart (Mermaid)
+├── Makefile                        # Quick development targets
+├── todo.md                         # Milestone tracking and architectural review tasks
+├── src/
+│   ├── ssl_robot_interfaces/       # Custom ROS 2 messages
+│   │   └── msg/
+│   │       ├── TrajectoryStep.msg      # Single trajectory point (x, y, theta, v, omega)
+│   │       ├── TrajectoryProfile.msg   # Horizon of trajectory steps
+│   │       └── BenchmarkMetric.msg     # Trial performance metrics
+│   ├── ssl_robot_description/      # URDF / Xacro kinematics & visual models
+│   │   ├── urdf/
+│   │   │   ├── robot.urdf.xacro        # Custom 3D-printed SSL robot
+│   │   │   ├── turtlebot3_burger.urdf.xacro # TurtleBot3 Burger baseline
+│   │   │   ├── jetbot.urdf.xacro       # NVIDIA JetBot baseline
+│   │   │   ├── chassis.xacro
+│   │   │   ├── wheels.xacro
+│   │   │   ├── sensors.xacro           # MPU6050 + modular camera support
+│   │   │   └── gazebo.xacro            # Diff-drive, IMU, & 60Hz ground-truth plugins
+│   │   ├── rviz/ssl_robot.rviz
+│   │   └── launch/display.launch.py
+│   ├── ssl_robot_gazebo/           # Simulation worlds & launch files
+│   │   ├── worlds/
+│   │   │   ├── ssl_field.world         # Official SSL Division B turf & boundary field
+│   │   │   └── benchmark_arena.world   # 5m sprint lane & M-shape waypoint markers
+│   │   └── launch/
+│   │       ├── sim.launch.py           # Main simulation launcher (robot_model, scenario)
+│   │       └── ssl_field.launch.py     # Match field launcher
+│   ├── ssl_robot_control/          # Dual-loop control architecture
+│   │   ├── ssl_robot_control/
+│   │   │   ├── overhead_tracking_node.py  # 60Hz tracking with Gaussian sensor noise
+│   │   │   ├── trajectory_generator.py    # Reference path generator
+│   │   │   ├── ltv_mpc_planner.py         # Central host constrained MPC optimizer
+│   │   │   └── simulated_pico_firmware.py # Pico Core 0 buffer & Core 1 PID controller
+│   │   └── launch/control.launch.py
+│   └── ssl_robot_benchmarking/     # Automated evaluation suite
+│       ├── ssl_robot_benchmarking/
+│       │   ├── sprint_halt_evaluator.py   # v_max, t_stop, d_stop evaluation
+│       │   ├── trajectory_evaluator.py    # Path RMSE (E_path) calculation
+│       │   ├── latency_evaluator.py       # Step-response command latency
+│       │   └── trial_orchestrator.py      # Multi-trial statistical batch aggregator
+│       └── launch/run_all_benchmarks.launch.py
+└── benchmark_results/              # Output CSV metrics (created upon test execution)
+    ├── benchmark_comparative_master.csv  # Raw trial log with RMSE, speed, and stopping metrics
+    ├── benchmark_statistical_summary.csv # Aggregated Mean ± SD matrix and pass rates
+    └── benchmark_summary_table.csv       # Formatted multi-platform summary table
+```
 
 ---
 
-## 3. System Architecture & Control Pipeline
+## 3. Simulation & Benchmarking CLI Reference
 
-The simulation architecture mirrors the physical hardware design:
+The workspace includes a command-line interface implemented for PowerShell (`sim_cli.ps1`) and Bash (`scripts/sim_cli.sh`). The CLI manages Docker services, launches Gazebo simulations, executes multi-trial benchmark suites, and calculates summary statistics.
 
-```
-[Central Host / Laptop]
-   │
-   ├── Overhead Tracking Node (60 Hz) ──> /overhead_tracking/pose (Global x, y, theta)
-   │
-   ├── Trajectory Generator (20 Hz)   ──> /trajectory/reference_profile
-   │
-   └── LTV-MPC Planner (20-50 Hz)     ──> /pico/trajectory_horizon (TrajectoryProfile.msg)
-                                            │
-                                            ▼
-[Simulated RP2040 Pico Firmware Node]
-   │
-   ├── Core 0 (Network Buffer): Subscribes to horizon, validates timestamps
-   │
-   └── Core 1 (200-500 Hz Execution Loop):
-         ├── Heading Fusion (Complementary Filter: IMU + Odometry)
-         └── Discrete PID Wheel Controllers ──> /cmd_vel (v, omega)
-                                                   │
-                                                   ▼
-[Gazebo Simulation World]
-   ├── Diff-Drive Physics Plugin
-   ├── Centered MPU6050 IMU Plugin
-   └── Ground Truth State Publisher (60 Hz)
-```
+### PowerShell CLI (Windows)
 
-### Evaluated Robot Platforms
-
-| Metric | Custom SSL Robot | TurtleBot3 Burger | NVIDIA JetBot |
-| :--- | :--- | :--- | :--- |
-| **Chassis Profile** | Cylinder ($\varnothing 100 \times 100\text{ mm}$) | Tiered ($\varnothing 138 \times 192\text{ mm}$) | Box ($138 \times 115 \times 80\text{ mm}$) |
-| **Total Mass** | $0.435\text{ kg}$ | $1.000\text{ kg}$ | $0.900\text{ kg}$ |
-| **Track Gauge ($b$)** | $90\text{ mm}$ ($0.090\text{ m}$) | $160\text{ mm}$ ($0.160\text{ m}$) | $110\text{ mm}$ ($0.110\text{ m}$) |
-| **Wheel Radius ($r$)** | $25\text{ mm}$ ($0.025\text{ m}$) | $33\text{ mm}$ ($0.033\text{ m}$) | $32.5\text{ mm}$ ($0.0325\text{ m}$) |
-| **Max Linear Speed** | $1.50\text{ m/s}$ (Division B Limit) | $0.22\text{ m/s}$ | $0.35\text{ m/s}$ |
-| **Max Wheel Torque** | $2.00\text{ N}\cdot\text{m}$ | $1.40\text{ N}\cdot\text{m}$ | $0.45\text{ N}\cdot\text{m}$ |
-| **Microcontroller** | Raspberry Pi Pico (RP2040) | OpenCR 1.0 (ARM Cortex-M7) | None (Jetson Nano GPIO) |
-| **Estimated Cost** | R 1,500 - R 2,200 | R 11,000 - R 14,000 | R 3,500 - R 4,500 |
-
----
-
-## 4. Quick Start: Running the Simulation & Benchmarks
-
-The simulation suite runs inside a Docker container configured with ROS 2 Humble, Gazebo 11, and noVNC for browser-based 3D visualization.
-
-### Prerequisites
-* **Windows 10/11**: Docker Desktop running with WSL2 backend.
-* **Linux / Ubuntu**: Docker Engine and Docker Compose plugin installed.
-
-### Option A: Windows PowerShell CLI (Recommended)
-
-From the project root on Windows, invoke `sim_cli.ps1`:
+Execute commands from the `Research/` directory or root workspace:
 
 ```powershell
-# Run the complete multi-robot visual test sequence with 3D GUI for screen recording
-.\Research\sim_cli.ps1 run_all 3
-
-# Run repeated batch trials back-to-back
-.\Research\sim_cli.ps1 batch -Robot ssl_robot -Scenario m_shape -Trials 10
-
-# Run batch trials with live 3D visualization in your browser
-.\Research\sim_cli.ps1 batch -Robot turtlebot3_burger -Scenario circular_arc -Trials 5 -Gui
-
-# Run unconstrained straight-line top speed and peak acceleration tests
-.\Research\sim_cli.ps1 speed_test -Robot ssl_robot -Gui
-.\Research\sim_cli.ps1 speed_test_all
-
-# Launch interactive 3D Gazebo simulation
-.\Research\sim_cli.ps1 sim -Robot ssl_robot -Scenario straight_line
-
-# Display statistical summary table (N, Mean ± SD, Pass Rates)
-.\Research\sim_cli.ps1 summary
+.\sim_cli.ps1 <command> [robot] [scenario] [-Trials <N>] [-Gui]
 ```
 
-#### Visualizing and Recording Simulations in Browser (noVNC)
-The simulation streams 3D graphics to an internal web viewer at [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html). Specifying `-Gui` or executing `run_all` opens this URL in your default browser. Click **Connect** to view the live arena. Screen captures can be recorded using Windows Game Bar (`Win + Alt + R`) or OBS Studio via Window Capture on the browser tab. The `run_all` command includes an automated 6-second delay to allow focusing the browser and starting video capture.
+#### Command Summary
 
-### Option B: Linux / WSL Bash CLI
+| Command | Arguments / Flags | Description |
+| :--- | :--- | :--- |
+| `run_all` | `[trials]` | Executes all robot platforms across all scenarios with 3D GUI enabled. Opens the browser viewer with a 6-second delay to begin screen recording. |
+| `record_all` | `[trials]` | Alias for `run_all`. |
+| `batch` | `-Robot <R> -Scenario <S> -Trials <N> [-Gui]` | Runs repeated trials back-to-back for a target platform and path geometry. |
+| `speed_test` | `-Robot <R> [-Gui]` | Evaluates unconstrained straight-line acceleration and terminal velocity over 5 meters without MPC limits. |
+| `speed_test_all` | `[-Gui]` | Executes unconstrained straight-line speed tests across all three robot platforms sequentially. |
+| `benchmark` | `-Robot <R> -Scenario <S> [-Gui]` | Executes a single trajectory evaluation trial with live tracking RMSE telemetry. |
+| `benchmark_all` | `[-Trials <N>] [-Gui]` | Executes the complete matrix of all robots across all trajectory scenarios. |
+| `summary` | *(none)* | Calculates sample count, Mean $\pm$ SD, and pass rates from recorded trials and displays the summary table. |
+| `sim` | `-Robot <R> -Scenario <S>` | Launches interactive Gazebo simulation and opens the 3D browser viewer. |
+| `build` | *(none)* | Compiles ROS 2 packages inside the container with colcon. |
+| `shell` | *(none)* | Opens an interactive bash shell inside the simulation container. |
 
-From the `Research/` directory:
+#### Example Invocations
+
+```powershell
+# Run the complete visual test suite for screen recording
+.\sim_cli.ps1 run_all 3
+
+# Execute 10 headless batch trials on the custom SSL robot
+.\sim_cli.ps1 batch -Robot ssl_robot -Scenario m_shape -Trials 10
+
+# Execute batch trials with live 3D visualization
+.\sim_cli.ps1 batch -Robot turtlebot3_burger -Scenario circular_arc -Trials 5 -Gui
+
+# Run unconstrained terminal speed tests
+.\sim_cli.ps1 speed_test -Robot ssl_robot -Gui
+.\sim_cli.ps1 speed_test_all
+
+# Print the statistical Mean ± SD summary table
+.\sim_cli.ps1 summary
+```
+
+### Linux / WSL Bash CLI
+
+The Linux CLI provides equivalent functionality using positional arguments:
+
 ```bash
-# Visual recording sequence
+# Full visual recording sequence
 ./scripts/sim_cli.sh run_all 3
 
 # Batch testing
@@ -178,51 +156,84 @@ From the `Research/` directory:
 # Trajectory benchmark
 ./scripts/sim_cli.sh benchmark jetbot circular_arc
 
-# Statistical summary table
+# Statistical aggregation
 ./scripts/sim_cli.sh summary
 ```
 
 ---
 
-## 5. Benchmarking Protocols & Scenarios
+## 4. Visual Simulation & Screen Recording via noVNC
 
-The automated evaluation suite assesses four benchmark protocols:
+The simulation container renders 3D graphics through a virtual X11 framebuffer (`Xvfb :1`) paired with an internal VNC server (`x11vnc`) and WebSocket proxy (`websockify`). This configuration provides responsive 3D simulation streaming without host display server configuration:
 
-1. **Straight-Line Sprint & Halt (`straight_line`)**:
-   * Evaluates acceleration, terminal velocity, and braking compliance under LTV-MPC guidance against the SSL 2.0-second halting rule ($t_{\text{stop}} \le 2.0\text{ s}$).
-2. **Circular Arc Tracking (`circular_arc`)**:
-   * Evaluates steady-state centrifugal tracking accuracy and lateral drift under continuous curvature ($R = 1.0\text{ m}$).
-3. **M-Shape Course (`m_shape`)**:
-   * Stresses transient response across sharp yaw transitions and acute waypoint changes.
-4. **Unconstrained Straight-Line Sprint (`speed_test`)**:
-   * Evaluates physical platform acceleration and terminal velocity over 5.0 meters with maximum motor torque without MPC velocity saturation.
-
-### Benchmark Output Files
-Evaluation logs and statistical summaries are stored in `Research/benchmark_results/`:
-* `benchmark_comparative_master.csv`: Comprehensive log capturing individual trial outcomes including $v_{\text{max}}$, $t_{\text{stop}}$, $d_{\text{stop}}$, path RMSE, run duration, and pass status.
-* `benchmark_statistical_summary.csv`: Aggregated summary table reporting sample size ($N$), $\text{Mean} \pm \text{SD}$ for key metrics, and pass percentages.
-* `benchmark_summary_table.csv`: Cross-platform comparison table for research reporting.
+* **Browser Access URL**: [http://localhost:6080/vnc.html](http://localhost:6080/vnc.html)
+* **Automatic Launch**: Specifying `-Gui` on any command or invoking `sim` or `run_all` automatically opens the default web browser to this address.
+* **Connection**: Click the **Connect** button on the page to display the live Gazebo arena.
+* **Video Screen Recording**:
+  * Windows Game Bar: Press `Win + Alt + R` to start or stop recording the browser window.
+  * OBS Studio: Add a **Window Capture** source targeting the browser tab displaying the noVNC stream.
+  * Automated Delay: The `run_all` and `record_all` commands insert a 6-second countdown before simulation initialization, allowing the operator to focus the browser and begin recording.
 
 ---
 
-## 6. Document Compilation (LaTeX)
+## 5. Control System Topics & Node Interfaces
 
-### Research Proposal & Thesis
-Navigate to `Research proposal/`:
-```bash
-cd "Research proposal"
-make thesis       # Compiles thesis.tex -> thesis.pdf
-make proposal     # Compiles main.tex -> main.pdf
-make clean        # Removes auxiliary build files (*.aux, *.log, *.bbl)
 ```
-On Windows without Make, run:
-```cmd
-build.bat
+Topic Name                       Type                                 Publisher                   Subscriber
+-------------------------------------------------------------------------------------------------------------------------
+/overhead_tracking/pose          geometry_msgs/msg/PoseStamped        overhead_tracking_node      ltv_mpc_planner, evaluators
+/trajectory/reference_profile    ssl_robot_interfaces/TrajectoryProfile trajectory_generator        ltv_mpc_planner
+/pico/trajectory_horizon         ssl_robot_interfaces/TrajectoryProfile ltv_mpc_planner             simulated_pico_firmware (Core 0)
+/imu/data                        sensor_msgs/msg/Imu                  gazebo imu plugin           simulated_pico_firmware (Core 1)
+/odom                            nav_msgs/msg/Odometry                gazebo diff-drive plugin    simulated_pico_firmware (Core 1)
+/cmd_vel                         geometry_msgs/msg/Twist              simulated_pico_firmware     gazebo diff-drive plugin
+/benchmark/metrics               ssl_robot_interfaces/BenchmarkMetric evaluators                  trial_orchestrator
 ```
 
-### Literature Review
-Navigate to `Lit_review/`:
-```bash
-cd Lit_review
-make              # Compiles main.tex -> main.pdf
+---
+
+## 6. Supported Evaluation Scenarios
+
+| Scenario Identifier | Trajectory Description | Key Evaluated Metrics |
+| :--- | :--- | :--- |
+| `straight_line` | 5.0 m linear sprint from $(0,0)$ to $(5.0, 0.0)$ under LTV-MPC, followed by halt command. | $v_{\text{max}}$, acceleration, $t_{\text{stop}}$, $d_{\text{stop}}$, path RMSE |
+| `circular_arc` | Continuous curvature circle of radius $R = 1.0\text{ m}$ centered at $(1.0, 0.0)$. | Steady-state tracking error, lateral centrifugal slip, path RMSE |
+| `m_shape` | Waypoint course: $(0,0) \to (1.5, 2.0) \to (3.0, 0.5) \to (4.5, 2.0) \to (6.0, 0.0)$. | Transient cornering overshoot, yaw response, path RMSE |
+| `speed_test` | Unconstrained 5.0 m linear run at maximum motor torque without MPC saturation limits. | Physical platform terminal velocity, peak linear acceleration |
+
+---
+
+## 7. Results & Output Formats
+
+Benchmark trials record telemetry and performance data to `benchmark_results/`:
+
+### Raw Comparative Log (`benchmark_comparative_master.csv`)
+Records each executed trial as an individual row with metrics including:
+```csv
+timestamp,robot_model,scenario,run_duration_s,v_max,t_stop,d_stop,path_rmse,passed
+2026-10-31 13:40:22,ssl_robot,Trajectory: m_shape,22.14,0.485,0.000,0.000,0.0762,True
 ```
+
+### Statistical Summary Table (`benchmark_statistical_summary.csv`)
+Aggregated through `scripts/aggregate_benchmarks.py` (or `.\sim_cli.ps1 summary`), computing sample statistics for each platform and scenario pair:
+```csv
+robot_model,scenario,trials_count,path_rmse_mean_sd,v_max_mean_sd,t_stop_mean_sd,d_stop_mean_sd,pass_rate_pct
+ssl_robot,m_shape,3,0.0772 ± 0.0009,0.485 ± 0.000,N/A,N/A,100.0%
+ssl_robot,straight_line,5,0.0142 ± 0.0018,1.488 ± 0.012,0.360 ± 0.020,0.228 ± 0.014,100.0%
+turtlebot3_burger,straight_line,3,0.0195 ± 0.0006,0.220 ± 0.000,0.180 ± 0.000,0.038 ± 0.000,100.0%
+jetbot,straight_line,3,0.0210 ± 0.0008,0.350 ± 0.000,0.210 ± 0.010,0.045 ± 0.002,100.0%
+```
+
+---
+
+## 8. Development & Maintenance Commands
+
+| Action | Command |
+| :--- | :--- |
+| Open interactive container bash shell | `.\sim_cli.ps1 shell` or `make shell` |
+| Recompile ROS 2 packages inside container | `.\sim_cli.ps1 build` or `make colcon` |
+| Terminate lingering simulation processes | `.\sim_cli.ps1 cleanup` |
+| Rebuild Docker container image | `make build-image` |
+| Stop container services | `make down` |
+| Clean Colcon build, install, log, and Python cache | `make clean` |
+| Inspect detected display configuration | `make detect-hw` |
