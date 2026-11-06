@@ -1,22 +1,32 @@
-# RoboCup SSL Differential-Drive Research Simulation (ROS 2 Humble)
+# Bridging the Cost Barrier: A Simulation-Based Feasibility Study of a 3D-Printed ROS 2 Platform for RoboCup SSL Benchmarking
 
-This directory contains the containerized ROS 2 Humble simulation workspace for evaluating a low-cost, 3D-printed differential-drive robotic platform designed for RoboCup Small Size League (SSL) Division B benchmarking.
+This repository contains the containerized ROS 2 Humble simulation workspace, benchmarking suite, and dynamic models evaluating the feasibility of an accessible, 3D-printed differential-drive robotic platform for RoboCup Small Size League (SSL) Division B benchmarking.
 
 ---
 
-## 1. Overview & Architecture
+## 1. Overview & Research Framing
 
-The system implementation mirrors the research methodology and physical hardware specifications:
-* **Custom Robotic Platform**: 100 mm diameter $\times$ 100 mm height cylindrical chassis, dual differential-drive spur gear DC motors (50 mm wheels, 90 mm track gauge), passive ball caster, and centered MPU6050 IMU.
+RoboCup Small Size League (SSL) Division B participation traditionally requires specialized omnidirectional drive mechanisms, custom brushless motors, and proprietary software architectures costing tens of thousands of Rands per unit. This research investigates whether an accessible differential-drive platform fabricated with additive manufacturing (3D printing) and operated under open-source Robot Operating System 2 (ROS 2) and micro-ROS middleware can satisfy SSL kinematic, trajectory-tracking, and safety constraints.
+
+### Hardware Status & Simulation Scoping
+Structural CAD geometry, electronic schematics, and component selections were designed to conform strictly with official SSL size envelopes ($\le 180\text{ mm}$ diameter, $\le 150\text{ mm}$ height). Due to external supply chain delays in physical component procurement, the physical platform parameters directly establish the dynamic configuration of the high-fidelity Gazebo simulation testbed. Consequently, empirical benchmarks evaluate platform dynamics, control stability, and regulatory compliance in simulation rather than on physical hardware.
+
+### Key System Specifications
+* **Custom Robotic Platform**: Cylindrical PLA chassis ($100\text{ mm}$ diameter $\times 100\text{ mm}$ height, mass $m = 0.435\text{ kg}$, yaw inertia $I_z = 5.44 \times 10^{-4}\text{ kg}\cdot\text{m}^2$), dual spur gear DC motors ($50\text{ mm}$ wheels, $90\text{ mm}$ track gauge, integrated magnetic quadrature encoders), passive ball caster, and centered MPU6050 IMU.
 * **Commercial Baseline Platforms**:
-  * **TurtleBot3 (Burger)**: 160 mm track gauge, 66 mm wheels, Dynamixel servomotors, OpenCR microcontroller.
-  * **NVIDIA JetBot**: 110 mm track gauge, 65 mm wheels, TT micro gearmotors.
-* **Dual-Loop Control Architecture**:
-  * **Central Host (Laptop)**: Runs 60 Hz overhead tracking pose receiver and high-level 20–50 Hz Linear Time-Varying Model Predictive Control (LTV-MPC) enforcing SSL constraints ($v \le 1.5\text{ m/s}$, $t_{\text{stop}} \le 2.0\text{ s}$).
-  * **Simulated Pico (RP2040 Firmware)**: Emulates the physical dual-core architecture:
-    * **Core 0**: micro-ROS subscriber caching trajectory horizons (`TrajectoryProfile.msg`).
-    * **Core 1**: High-frequency (200–500 Hz) discrete PID wheel velocity control and complementary filter heading fusion.
-* **Benchmarking Protocol**: Automated test suite evaluating straight-line 5 m sprint & halt, trajectory tracking RMSE across 3 path geometries (Straight Line, Circular Arc, M-Shape), step-response latency ($\le 16.7\text{ ms}$), and 10-trial consistency standard deviations ($\sigma_x$).
+  * **TurtleBot3 Burger**: Academic research baseline ($160\text{ mm}$ track gauge, $66\text{ mm}$ wheels, Dynamixel XL430 servomotors with $0.22\text{ m/s}$ firmware velocity limit, OpenCR microcontroller).
+  * **NVIDIA JetBot**: Embedded AI baseline ($110\text{ mm}$ track gauge, $65\text{ mm}$ wheels, open-loop micro TT gearmotors without encoder feedback).
+* **Hierarchical Dual-Loop Control Architecture**:
+  * **Central Host Workstation**: Executes an overhead tracking pose subscriber ($60\text{ Hz}$) and a constrained Error-Model Linear Time-Varying Model Predictive Control (LTV-MPC) solver operating at $20\text{ Hz}$ ($\Delta t = 50\text{ ms}$, lookahead horizon $N = 5$) to enforce SSL velocity caps ($v \le 1.50\text{ m/s}$ referee Stop speed cap) and deceleration profiles ($t_{\text{stop}} \le 2.0\text{ s}$).
+  * **Microcontroller Firmware (Simulated RP2040 Pico)**:
+    * **Core 0**: micro-ROS subscriber buffering incoming trajectory profile horizons (`TrajectoryProfile.msg`).
+    * **Core 1**: High-frequency ($500\text{ Hz}$) discrete PID wheel velocity control loop and complementary filter heading estimation.
+
+### Evaluated Hypotheses & Summary Results
+1. **Regulatory Compliance (H1a)**: The platform enforces the referee Stop command speed ceiling ($1.50\text{ m/s}$) and decelerates from $1.50\text{ m/s}$ to zero velocity in $0.80\text{ s}$ under maximum braking, comfortably inside the $2.0\text{ s}$ league Halt threshold.
+2. **Dynamic Capability (H1b)**: In unconstrained sprint evaluations without MPC bounds, the spur gear DC motors reach a terminal velocity of $2.001\text{ m/s}$ and peak linear acceleration of $3.0\text{ m/s}^2$, confirming that the drive mechanism provides dynamic capability exceeding SSL requirements.
+3. **Trajectory Tracking Performance**: Across standardized path geometries, the custom platform achieves orthogonal tracking RMSE ($E_{\text{path}}$) of $0.0145\text{ m}$ (Straight-Line), $0.0218\text{ m}$ (Circular Arc), and $0.0238\text{ m}$ (M-Shape). On steady-state circular arcs, the platform outperforms the TurtleBot3 Burger ($0.1437\text{ m}$) by a factor of 6.59 because the TurtleBot3 suffers actuator velocity clipping at $0.22\text{ m/s}$.
+4. **Command Latency & Stability (H2)**: Systematic injection of command delays ($\tau_d \in \{0, 10, 20, 40\}\text{ ms}$) demonstrates that tracking remains stable when communication latency is maintained below the $16.7\text{ ms}$ ($60\text{ Hz}$) vision frame interval. Delays of $20\text{ ms}$ and $40\text{ ms}$ degrade path error by $32\%$ and $118\%$ respectively due to phase lag.
 
 ---
 
@@ -237,3 +247,19 @@ jetbot,straight_line,3,0.0210 ± 0.0008,0.350 ± 0.000,0.210 ± 0.010,0.045 ± 0
 | Stop container services | `make down` |
 | Clean Colcon build, install, log, and Python cache | `make clean` |
 | Inspect detected display configuration | `make detect-hw` |
+
+---
+
+## 9. Citation & Repository Reference
+
+To cite this study or software suite:
+
+```bibtex
+@misc{ssl_robot_code_2026,
+  title        = {{RoboCup SSL} 3D-Printed Differential-Drive Simulation and Benchmarking Suite},
+  author       = {Samlal, Sashin},
+  year         = {2026},
+  howpublished = {\url{https://github.com/Deku-Soma/Research-methods-intro}},
+  note         = {Software repository and experimental simulation datasets}
+}
+```

@@ -62,9 +62,12 @@
 
 ---
 
-## Phase 4: Final Submission & Codebase Readiness - Status: PENDING FINAL CHECK
-- [ ] **GitHub Repository Readiness (`references.bib`)**
-  - Ensure `https://github.com/Deku-Soma/Research-methods-intro` is public.
-  - Update root `README.md` to match the simulation feasibility framing.
-- [ ] **Final LaTeX Compilation & Archival**
-  - Run a clean build of `thesis.pdf` and verify page numbering, hyperref links, and bibliography citations.
+## Phase 4: Final Submission & Codebase Readiness - Status: COMPLETED
+- [x] **GitHub Repository Readiness (`references.bib`)**
+  - [x] Ensured `https://github.com/Deku-Soma/Research-methods-intro` is public.
+  - [x] Verified `@misc{ssl_robot_code_2026}` BibTeX entry and added `retrieved` metadata resolving BibTeX warnings.
+  - [x] Updated root `README.md` to match the simulation feasibility study framing, hardware implementation status, 20 Hz MPC formulation, empirical hypothesis results, and repository citation.
+- [x] **Final LaTeX Compilation & Archival**
+  - [x] Fixed Chapter 3 subsection hierarchy to proper top-level sections (`§3.1`–`§3.4`).
+  - [x] Executed clean compilation cycle (`pdflatex` + `bibtex` + `pdflatex` x2) with zero BibTeX warnings and zero undefined references.
+  - [x] Verified roman (`i`–`vii`) front matter pagination, arabic (`1`–`26`) body pagination, PDF outline bookmarks, and appendix declaration inclusion (34 total pages).
