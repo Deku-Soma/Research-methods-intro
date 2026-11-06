@@ -65,4 +65,13 @@ data/*.zip
 
 # Agent System Temporary State
 .agents/
-.agents/temp/
+
+# remove all unneded docs 
+*.pdf 
+*.pptx 
+*.docx
+*.zip
+Annotated_Bibliography__1_/
+Lit_review/
+Research proposal/
+research papers/
