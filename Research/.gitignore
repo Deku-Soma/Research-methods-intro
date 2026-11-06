@@ -15,4 +15,3 @@ __pycache__/
 docker/docker-compose.override.yml
 .env
 
-.agents

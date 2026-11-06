@@ -64,5 +64,5 @@ desktop.ini
 data/*.zip
 
 # Agent System Temporary State
-.agent/
+.agents/
 .agents/temp/
